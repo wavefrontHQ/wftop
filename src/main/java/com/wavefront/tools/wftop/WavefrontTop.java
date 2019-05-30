@@ -344,7 +344,7 @@ public class WavefrontTop {
       path.append(" [EXPANSION HALTED (PER CONFIG)]");
     }
     if (backendCount.get() == 0) {
-      path.append(" [PPS and %ACCESSED IS NOT AVAILABLE/CORRECT]");
+      path.append(" [PPS and %ACCESSED IS NOT AVAILABLE/ACCURATE]");
     }
     pointsNamespacePanel.setPath(path.toString(), limited || backendCount.get() == 0);
   }

@@ -12,6 +12,7 @@ Wavefront Top (wftop) is an interactive tool for exploring the live metric inges
   * Drill-down into each namespace via selection
   * Customizable separators (defaults to ".", "-", "_")
   * Multiple sort dimensions
+  * Start/Stop support
   * Automatic reconnection on server disconnects or network faults
   * Console emulation (--emulator) for high-resolution rendering
   * Credentials storage on "user.home" location for fast start-up (also supports --token and --cluster arguments)
