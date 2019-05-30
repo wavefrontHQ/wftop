@@ -89,6 +89,22 @@ public class NamespaceBuilder {
     this.root = new Node("");
   }
 
+  public int getMaxDepth() {
+    return depthLimit;
+  }
+
+  public int getMaxChildren() {
+    return branchLimit;
+  }
+
+  public void setMaxDepth(int maxDepth) {
+    this.depthLimit = maxDepth;
+  }
+
+  public void setMaxChildren(int maxChildren) {
+    this.branchLimit = maxChildren;
+  }
+
   public class Node {
     private final Map<String, Node> nodes = new ConcurrentHashMap<>();
     private final String value;

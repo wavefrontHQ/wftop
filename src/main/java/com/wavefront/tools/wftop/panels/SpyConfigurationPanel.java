@@ -5,6 +5,7 @@ import com.googlecode.lanterna.gui2.*;
 import com.googlecode.lanterna.gui2.dialogs.MessageDialogBuilder;
 
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * Panel to configure sampling.
@@ -16,13 +17,13 @@ public class SpyConfigurationPanel extends BasicWindow {
   private final TextBox samplingRateTB;
   private final TextBox separatorCharactersTB;
   private final TextBox usageDaysThresholdTB;
-  private final MultiWindowTextGUI gui;
+  private final TextBox maxDepthTB;
+  private final TextBox maxChildrenTB;
 
   private Listener listener;
 
   public SpyConfigurationPanel(MultiWindowTextGUI gui) {
     super("Configuration");
-    this.gui = gui;
     this.setHints(List.of(Hint.MODAL, Hint.CENTERED));
     Panel contents = new Panel();
     contents.setLayoutManager(new LinearLayout(Direction.VERTICAL));
@@ -34,13 +35,28 @@ public class SpyConfigurationPanel extends BasicWindow {
     Panel form = new Panel(new GridLayout(2));
     form.addComponent(new Label("Sampling Rate (0 < r <= 1): "));
     this.samplingRateTB = new TextBox(new TerminalSize(10, 1));
+    this.samplingRateTB.setValidationPattern(Pattern.compile("[0-9.]+"));
     form.addComponent(samplingRateTB);
+
     form.addComponent(new Label("Separators: "));
     this.separatorCharactersTB = new TextBox(new TerminalSize(10, 1));
     form.addComponent(separatorCharactersTB);
+
     form.addComponent(new Label("Usage Lookback (Days): "));
     this.usageDaysThresholdTB = new TextBox(new TerminalSize(10, 1));
+    this.usageDaysThresholdTB.setValidationPattern(Pattern.compile("[0-9]+"));
     form.addComponent(usageDaysThresholdTB);
+
+    form.addComponent(new Label("Max Tree Depth:"));
+    this.maxDepthTB = new TextBox(new TerminalSize(10, 1));
+    this.maxDepthTB.setValidationPattern(Pattern.compile("[0-9]+"));
+    form.addComponent(maxDepthTB);
+
+    form.addComponent(new Label("Max Children Per Node:"));
+    this.maxChildrenTB = new TextBox(new TerminalSize(10, 1));
+    this.maxChildrenTB.setValidationPattern(Pattern.compile("[0-9]+"));
+    form.addComponent(maxChildrenTB);
+
     contents.addComponent(form);
     contents.addComponent(new EmptySpace(new TerminalSize(1, 1)));
 
@@ -83,6 +99,32 @@ public class SpyConfigurationPanel extends BasicWindow {
               setTitle("Invalid Input").build().showDialog(gui);
           return;
         }
+        int maxDepth;
+        try {
+          maxDepth = Integer.valueOf(maxDepthTB.getText());
+        } catch (NumberFormatException ex) {
+          new MessageDialogBuilder().setText("Invalid max depth, must be an integer").setTitle("Invalid Input").
+              build().showDialog(gui);
+          return;
+        }
+        if (maxDepth < 1) {
+          new MessageDialogBuilder().setText("Invalid max depth, must be > 0").
+              setTitle("Invalid Input").build().showDialog(gui);
+          return;
+        }
+        int maxChildren;
+        try {
+          maxChildren = Integer.valueOf(maxDepthTB.getText());
+        } catch (NumberFormatException ex) {
+          new MessageDialogBuilder().setText("Invalid max children, must be an integer").setTitle("Invalid Input").
+              build().showDialog(gui);
+          return;
+        }
+        if (maxChildren < 1) {
+          new MessageDialogBuilder().setText("Invalid max children, must be > 0").
+              setTitle("Invalid Input").build().showDialog(gui);
+          return;
+        }
         panel.listener.onProceed(panel);
       }
       gui.removeWindow(this);
@@ -107,6 +149,14 @@ public class SpyConfigurationPanel extends BasicWindow {
     return Integer.valueOf(usageDaysThresholdTB.getText());
   }
 
+  public int getMaxDepth() {
+    return Integer.parseInt(this.maxDepthTB.getText());
+  }
+
+  public int getMaxChildren() {
+    return Integer.parseInt(maxChildrenTB.getText());
+  }
+
   public void setSamplingRate(double rate) {
     this.samplingRateTB.setText(String.valueOf(rate));
   }
@@ -117,6 +167,14 @@ public class SpyConfigurationPanel extends BasicWindow {
 
   public void setUsageDaysThreshold(int days) {
     this.usageDaysThresholdTB.setText(String.valueOf(days));
+  }
+
+  public void setMaxDepth(int depth) {
+    this.maxDepthTB.setText(String.valueOf(depth));
+  }
+
+  public void setMaxChildren(int maxChildren) {
+    this.maxChildrenTB.setText(String.valueOf(maxChildren));
   }
 
   public interface Listener {

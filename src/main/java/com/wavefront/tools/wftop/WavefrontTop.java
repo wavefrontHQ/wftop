@@ -82,13 +82,21 @@ public class WavefrontTop {
           new MultiWindowTextGUI(screen, new DefaultWindowManager(), new EmptySpace(TextColor.ANSI.BLACK));
       SpyConfigurationPanel spyConfigurationPanel = new SpyConfigurationPanel(gui);
       pointsNamespacePanel = new PointsNamespacePanel(spyConfigurationPanel, gui);
+
       spyConfigurationPanel.setSamplingRate(pointsSpy.getSamplingRate());
-      spyConfigurationPanel.setSeparatorCharacters(namespaceBuilder.getSeparatorCharacters());
       spyConfigurationPanel.setUsageDaysThreshold(pointsSpy.getUsageDaysThreshold());
+
+      spyConfigurationPanel.setSeparatorCharacters(namespaceBuilder.getSeparatorCharacters());
+      spyConfigurationPanel.setMaxDepth(namespaceBuilder.getMaxDepth());
+      spyConfigurationPanel.setMaxChildren(namespaceBuilder.getMaxChildren());
+
       spyConfigurationPanel.setListener(panel -> {
         pointsSpy.setSamplingRate(panel.getSamplingRate());
         pointsSpy.setUsageDaysThreshold(panel.getUsageThresholdDays());
+
         namespaceBuilder.setSeparatorCharacters(panel.getSeparatorCharacters());
+        namespaceBuilder.setMaxDepth(panel.getMaxDepth());
+        namespaceBuilder.setMaxChildren(panel.getMaxChildren());
         pointsSpy.start();
         reset();
       });
@@ -311,7 +319,7 @@ public class WavefrontTop {
       path.append(node.getValue());
     }
     if (limited) {
-      path.append(" [EXPANSION HALTED (PER SETTINGS)]");
+      path.append(" [EXPANSION HALTED (PER CONFIG)]");
     }
     pointsNamespacePanel.setPath(path.toString(), limited);
   }
