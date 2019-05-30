@@ -82,20 +82,11 @@ public class PointsNamespacePanel extends Panel {
     this.addComponent(table.setLayoutData(BorderLayout.Location.CENTER).withBorder(Borders.singleLine()));
 
     Panel footer = new Panel(new LinearLayout(Direction.HORIZONTAL));
-    Button exitBtn = new Button("Exit");
-    exitBtn.addListener(button -> {
-      if (listener != null) {
-        listener.onExit();
-      }
+    Button configBtn = new Button("Config");
+    configBtn.addListener(button -> {
+      gui.addWindowAndWait(panel);
     });
-    footer.addComponent(exitBtn);
-    Button stopStartBtn = new Button("Stop/Start");
-    stopStartBtn.addListener(button -> {
-      if (listener != null) {
-        listener.onStopStart();
-      }
-    });
-    footer.addComponent(stopStartBtn);
+    footer.addComponent(configBtn);
     Button sortLeftBtn = new Button("<- Sort");
     sortLeftBtn.addListener(button -> {
       if (listener != null) {
@@ -117,11 +108,20 @@ public class PointsNamespacePanel extends Panel {
       }
     });
     footer.addComponent(reverseSortBtn);
-    Button configBtn = new Button("Config");
-    configBtn.addListener(button -> {
-      gui.addWindowAndWait(panel);
+    Button stopStartBtn = new Button("Stop/Start");
+    stopStartBtn.addListener(button -> {
+      if (listener != null) {
+        listener.onStopStart();
+      }
     });
-    footer.addComponent(configBtn);
+    footer.addComponent(stopStartBtn);
+    Button exitBtn = new Button("Exit");
+    exitBtn.addListener(button -> {
+      if (listener != null) {
+        listener.onExit();
+      }
+    });
+    footer.addComponent(exitBtn);
 
     this.addComponent(footer.setLayoutData(BorderLayout.Location.BOTTOM));
   }

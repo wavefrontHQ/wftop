@@ -262,7 +262,7 @@ public class WavefrontTop {
   private boolean spyPoints(MultiWindowTextGUI gui) {
     AtomicBoolean exit = new AtomicBoolean(false);
     BasicWindow pointsSpyWindow = new BasicWindow("Wavefront Top");
-    pointsSpyWindow.setHints(Collections.singletonList(Window.Hint.EXPANDED));
+    pointsSpyWindow.setHints(Collections.singletonList(Window.Hint.FULL_SCREEN));
     pointsSpyWindow.setComponent(pointsNamespacePanel);
     pointsNamespacePanel.setListener(new PointsNamespacePanel.Listener() {
       @Override
