@@ -31,7 +31,6 @@ public class SpyConfigurationPanel extends BasicWindow {
     Panel contents = new Panel();
     contents.setLayoutManager(new LinearLayout(Direction.VERTICAL));
 
-    contents.addComponent(new Label("Spy Parameters:"));
     contents.addComponent(new EmptySpace(new TerminalSize(1, 1)));
 
     // input boxes.
