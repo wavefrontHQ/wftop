@@ -305,6 +305,13 @@ public class PointsSpy {
       parseMetric(false, line.substring(13));
     } else if (line.startsWith("[ACCESSED]   ")) {
       parseMetric(true, line.substring(13));
+    } else {
+      // for old wavefront clusters, no usage information is returned.
+      try {
+        parseMetric(false, line);
+      } catch (Throwable t) {
+        // ignored.
+      }
     }
   }
 

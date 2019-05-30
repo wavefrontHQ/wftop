@@ -26,6 +26,7 @@ Configuration screen to control sample rate (typical Wavefront clusters allow up
   * Java >= 11
   * maven (to compile)
   * Any Wavefront cluster >= 2019-18.8
+    * Older Wavefront clusters will still work with wftop but pps and % Accessed information will not be accurate/available.
 
 ## Overview
   * Simply run mvn clean install to compile the tool

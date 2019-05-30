@@ -191,7 +191,7 @@ public class WavefrontTop {
       @Override
       public void run() {
         double samplingRate = pointsSpy.getSamplingRate();
-        pointsNamespacePanel.setGlobalPPS(backendCount.get() / samplingRate,
+        pointsNamespacePanel.setGlobalPPS(Math.max(1, backendCount.get()) / samplingRate,
             namespaceBuilder.getRoot().getRate());
         pointsNamespacePanel.setSamplingRate(samplingRate);
         pointsNamespacePanel.setVisibleRows(gui.getScreen().getTerminalSize().getRows() - 10);
@@ -204,7 +204,7 @@ public class WavefrontTop {
 
   private void refreshPointsNamespacePanel(double samplingRate) {
     NamespaceBuilder.Node node = breadCrumbs.get(breadCrumbs.size() - 1);
-    pointsNamespacePanel.renderNodes(node, backendCount.get() / samplingRate,
+    pointsNamespacePanel.renderNodes(node, Math.max(1, backendCount.get()) / samplingRate,
         node.getNodes().values());
     computePath();
   }
@@ -343,6 +343,9 @@ public class WavefrontTop {
     if (limited) {
       path.append(" [EXPANSION HALTED (PER CONFIG)]");
     }
-    pointsNamespacePanel.setPath(path.toString(), limited);
+    if (backendCount.get() == 0) {
+      path.append(" [PPS and %ACCESSED IS NOT AVAILABLE/CORRECT]");
+    }
+    pointsNamespacePanel.setPath(path.toString(), limited || backendCount.get() == 0);
   }
 }
