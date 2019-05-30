@@ -4,6 +4,18 @@
 
 Wavefront Top (wftop) is an interactive tool for exploring the live metric ingestion data shape and to explore which metric namespaces were used in the last X days. Lag information (from wallclock of the machine running wftop compared to the ignested timestamp) is also available which can be used to discover data points that might be lagging behind (likely at the source).
 
+## Features
+  * Slice real-time metrics, host names, point tag keys, point tags into namespaces ("folders")
+  * Compute per namespace "pps" (for point tags, counting each occurrence)
+  * Compute per namespace "% Accessed" (in the last X days, configurable)
+  * Compute median, p75 and p99 lag for timestamps of each namespace (compared to wall-clock of the machine running wftop)
+  * Drill-down into each namespace via selection
+  * Customizable separators (defaults to ".", "-", "_")
+  * Multiple sort dimensions
+  * Automatic reconnection on server disconnects or network faults
+  * Console emulation (--emulator) for high-resolution rendering
+  * Credentials storage on "user.home" location for fast start-up (also supports --token and --cluster arguments)
+
 ## Screenshots
 
 Setting up wftop (the tool will persist the cluster/token to ~/.wftop)
