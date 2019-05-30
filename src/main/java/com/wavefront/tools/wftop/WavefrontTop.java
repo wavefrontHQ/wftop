@@ -11,6 +11,7 @@ import com.googlecode.lanterna.screen.Screen;
 import com.googlecode.lanterna.screen.TerminalScreen;
 import com.googlecode.lanterna.terminal.DefaultTerminalFactory;
 import com.googlecode.lanterna.terminal.Terminal;
+import com.wavefront.tools.wftop.components.Dimension;
 import com.wavefront.tools.wftop.components.NamespaceBuilder;
 import com.wavefront.tools.wftop.components.PointsSpy;
 import com.wavefront.tools.wftop.panels.ClusterConfigurationPanel;
@@ -41,6 +42,10 @@ public class WavefrontTop {
   private final AtomicInteger backendCount = new AtomicInteger(0);
   private final List<NamespaceBuilder.Node> breadCrumbs = new ArrayList<>();
 
+  /**
+   * What are we analyzing (metric names? hosts? point tags?)
+   */
+  private Dimension analysisDimension = Dimension.METRIC;
   private PointsNamespacePanel pointsNamespacePanel;
 
   @Parameter(names = "--log", description = "Log to console")
@@ -97,6 +102,8 @@ public class WavefrontTop {
         namespaceBuilder.setSeparatorCharacters(panel.getSeparatorCharacters());
         namespaceBuilder.setMaxDepth(panel.getMaxDepth());
         namespaceBuilder.setMaxChildren(panel.getMaxChildren());
+
+        analysisDimension = panel.getDimension();
         pointsSpy.start();
         reset();
       });
@@ -110,7 +117,21 @@ public class WavefrontTop {
         @Override
         public void onMetricReceived(PointsSpy pointsSpy, boolean accessed, String metric, String host,
                                      Multimap<String, String> pointTags, long timestamp, double value) {
-          namespaceBuilder.accept(metric, timestamp, accessed);
+          if (analysisDimension == Dimension.METRIC) {
+            namespaceBuilder.accept(metric, timestamp, accessed);
+          } else if (analysisDimension == Dimension.HOST) {
+            namespaceBuilder.accept(host, timestamp, accessed);
+          } else if (analysisDimension == Dimension.POINT_TAG) {
+            // here we are over-counting.
+            for (Map.Entry<String, String> entry : pointTags.entries()) {
+              namespaceBuilder.accept(entry.getKey() + "=" + entry.getValue(), timestamp, accessed);
+            }
+          } else if (analysisDimension == Dimension.POINT_TAG_KEY) {
+            // here we are over-counting.
+            for (String entry : pointTags.keySet()) {
+              namespaceBuilder.accept(entry, timestamp, accessed);
+            }
+          }
         }
 
         @Override
@@ -313,6 +334,7 @@ public class WavefrontTop {
 
   private void computePath() {
     StringBuilder path = new StringBuilder();
+    path.append(analysisDimension).append(": ");
     boolean limited = false;
     for (NamespaceBuilder.Node node : breadCrumbs) {
       limited |= node.isLimited();

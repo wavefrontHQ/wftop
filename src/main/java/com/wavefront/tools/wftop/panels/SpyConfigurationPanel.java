@@ -3,6 +3,7 @@ package com.wavefront.tools.wftop.panels;
 import com.googlecode.lanterna.TerminalSize;
 import com.googlecode.lanterna.gui2.*;
 import com.googlecode.lanterna.gui2.dialogs.MessageDialogBuilder;
+import com.wavefront.tools.wftop.components.Dimension;
 
 import java.util.List;
 import java.util.regex.Pattern;
@@ -20,6 +21,8 @@ public class SpyConfigurationPanel extends BasicWindow {
   private final TextBox maxDepthTB;
   private final TextBox maxChildrenTB;
 
+  private RadioBoxList<String> dimensionRadioBL = new RadioBoxList<>(new TerminalSize(20, 4));
+
   private Listener listener;
 
   public SpyConfigurationPanel(MultiWindowTextGUI gui) {
@@ -33,6 +36,15 @@ public class SpyConfigurationPanel extends BasicWindow {
 
     // input boxes.
     Panel form = new Panel(new GridLayout(2));
+
+    form.addComponent(new Label("Analysis Dimension:"));
+    dimensionRadioBL.addItem("Metric");
+    dimensionRadioBL.addItem("Host");
+    dimensionRadioBL.addItem("Point Tag Key");
+    dimensionRadioBL.addItem("Point Tag");
+    dimensionRadioBL.setCheckedItemIndex(0);
+    form.addComponent(dimensionRadioBL);
+
     form.addComponent(new Label("Sampling Rate (0 < r <= 1): "));
     this.samplingRateTB = new TextBox(new TerminalSize(10, 1));
     this.samplingRateTB.setValidationPattern(Pattern.compile("[0-9.]+"));
@@ -155,6 +167,20 @@ public class SpyConfigurationPanel extends BasicWindow {
 
   public int getMaxChildren() {
     return Integer.parseInt(maxChildrenTB.getText());
+  }
+
+  public Dimension getDimension() {
+    switch (dimensionRadioBL.getCheckedItem()) {
+      case "Host":
+        return Dimension.HOST;
+      case "Point Tag Key":
+        return Dimension.POINT_TAG_KEY;
+      case "Point Tag":
+        return Dimension.POINT_TAG;
+      case "Metric":
+      default:
+        return Dimension.METRIC;
+    }
   }
 
   public void setSamplingRate(double rate) {
