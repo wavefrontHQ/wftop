@@ -46,6 +46,9 @@ public class WavefrontTop {
   @Parameter(names = "--log", description = "Log to console")
   private boolean logToConsole = false;
 
+  @Parameter(names = "--emulator", description = "Force console emulator")
+  private boolean emulator = false;
+
   @Nullable
   @Parameter(names = "--token", description = "Wavefront Token")
   private String token = null;
@@ -69,7 +72,8 @@ public class WavefrontTop {
     DefaultTerminalFactory defaultTerminalFactory = new DefaultTerminalFactory();
     Screen screen = null;
     try {
-      Terminal terminal = defaultTerminalFactory.createTerminal();
+      Terminal terminal = emulator ? defaultTerminalFactory.createTerminalEmulator() :
+          defaultTerminalFactory.createTerminal();
       screen = new TerminalScreen(terminal);
       screen.startScreen();
       screen.setCursorPosition(null);
