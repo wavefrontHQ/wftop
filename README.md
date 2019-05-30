@@ -36,7 +36,7 @@ Configuration screen to control sample rate (typical Wavefront clusters allow up
 ![Setup Screen](https://raw.githubusercontent.com/wavefronthq/wftop/master/screenshots/ConfigurationScreen.png)
 
 ## Requirements
-  * Java >= 11
+  * Java >= 1.8
   * maven (to compile)
   * Any Wavefront cluster >= 2019-18.8
     * Older Wavefront clusters will still work with wftop but pps and % Accessed information will not be accurate/available.

@@ -214,9 +214,10 @@ public class WavefrontTop {
     clusterConfigWindow.setHints(Collections.singletonList(Window.Hint.CENTERED));
 
     File lastKnownClusterConfig = new File(System.getProperty("user.home"), ".wftop_cluster");
+    final Path path = new File(lastKnownClusterConfig.toURI()).toPath();
     if (lastKnownClusterConfig.exists() && lastKnownClusterConfig.canRead()) {
       try {
-        List<String> strings = Files.readAllLines(Path.of(lastKnownClusterConfig.toURI()));
+        List<String> strings = Files.readAllLines(path);
         if (strings.size() >= 2) {
           String clusterUrl = strings.get(0);
           String token = strings.get(1);
@@ -248,7 +249,8 @@ public class WavefrontTop {
     }
     if (!lastKnownClusterConfig.exists() || lastKnownClusterConfig.canWrite()) {
       try {
-        Files.write(Path.of(lastKnownClusterConfig.toURI()),
+        Files.write(
+            path,
             ImmutableList.of(clusterConfigurationPanel.getClusterUrl(), clusterConfigurationPanel.getToken()));
       } catch (IOException e) {
         log.log(Level.WARNING, "Cannot write .wftop_cluster", e);

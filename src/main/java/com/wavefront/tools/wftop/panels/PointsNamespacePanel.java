@@ -46,7 +46,7 @@ public class PointsNamespacePanel extends Panel {
     header.addComponent(path.setLayoutData(BorderLayout.Location.BOTTOM));
     this.addComponent(header.setLayoutData(BorderLayout.Location.TOP));
 
-    this.table = new Table<>("Namespace", "Est. PPS [↑]", "% Accessed", "Median Lag", "P75 Lag", "P99 Lag") {
+    this.table = new Table<String>("Namespace", "Est. PPS [↑]", "% Accessed", "Median Lag", "P75 Lag", "P99 Lag") {
       @Override
       public Result handleKeyStroke(KeyStroke keyStroke) {
         Result result = super.handleKeyStroke(keyStroke);
@@ -251,7 +251,7 @@ public class PointsNamespacePanel extends Panel {
 
   public void setConnectionError(String string) {
     connectivityStatus.setForegroundColor(TextColor.ANSI.RED);
-    connectivityStatus.setText(Objects.requireNonNullElse(string, "DISCONNECTED"));
+    connectivityStatus.setText(string == null ? "DISCONNECTED" : string);
   }
 
   public void setPath(String path, boolean limited) {

@@ -1,11 +1,11 @@
 package com.wavefront.tools.wftop.panels;
 
+import com.google.common.collect.ImmutableList;
 import com.googlecode.lanterna.TerminalSize;
 import com.googlecode.lanterna.gui2.*;
 import com.googlecode.lanterna.gui2.dialogs.MessageDialogBuilder;
 import com.wavefront.tools.wftop.components.Dimension;
 
-import java.util.List;
 import java.util.regex.Pattern;
 
 /**
@@ -27,7 +27,7 @@ public class SpyConfigurationPanel extends BasicWindow {
 
   public SpyConfigurationPanel(MultiWindowTextGUI gui) {
     super("Configuration");
-    this.setHints(List.of(Hint.MODAL, Hint.CENTERED));
+    this.setHints(ImmutableList.of(Hint.MODAL, Hint.CENTERED));
     Panel contents = new Panel();
     contents.setLayoutManager(new LinearLayout(Direction.VERTICAL));
 

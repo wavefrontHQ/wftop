@@ -226,7 +226,7 @@ public class PointsSpy {
               }
             }
           },
-          new FutureCallback<>() {
+          new FutureCallback<Boolean>() {
             @Override
             public void completed(Boolean result) {
               log.warning("Spy request completed (will reconnect)");

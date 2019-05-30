@@ -11,7 +11,7 @@
     <name>Wavefront Top</name>
 
     <properties>
-        <jdk.version>11</jdk.version>
+        <jdk.version>1.8</jdk.version>
     </properties>
 
     <dependencies>
