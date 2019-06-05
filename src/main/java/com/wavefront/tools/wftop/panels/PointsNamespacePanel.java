@@ -46,7 +46,8 @@ public class PointsNamespacePanel extends Panel {
     header.addComponent(path.setLayoutData(BorderLayout.Location.BOTTOM));
     this.addComponent(header.setLayoutData(BorderLayout.Location.TOP));
 
-    this.table = new Table<String>("Namespace", "Est. PPS [↑]", "% Accessed", "Median Lag", "P75 Lag", "P99 Lag") {
+    this.table = new Table<String>("Namespace", "Est. PPS [↑]", "% Accessed", "Median Lag", "P75 Lag", "P99 Lag",
+        "Est. Metrics", "Est. Hosts") {
       @Override
       public Result handleKeyStroke(KeyStroke keyStroke) {
         Result result = super.handleKeyStroke(keyStroke);
@@ -180,13 +181,19 @@ public class PointsNamespacePanel extends Panel {
         // p99 lag
         return Double.compare(o1.getLag().getSnapshot().get99thPercentile(),
             o2.getLag().getSnapshot().get99thPercentile());
+      } else if (sortIndex == 6) {
+        // metric cardinality
+        return Long.compare(o1.getEstimatedMetricCardinality(), o2.getEstimatedMetricCardinality());
+      } else if (sortIndex == 7) {
+        // host cardinality
+        return Long.compare(o1.getEstimatedHostCardinality(), o2.getEstimatedHostCardinality());
       } else {
         return 0;
       }
     };
   }
 
-  public void renderNodes(NamespaceBuilder.Node node, double factor, Collection<NamespaceBuilder.Node> nodes) {
+  public void renderNodes(NamespaceBuilder.Node root, double factor, Collection<NamespaceBuilder.Node> nodes) {
     synchronized (table) {
       @Nullable
       String selectedLabel = null;
@@ -200,32 +207,36 @@ public class PointsNamespacePanel extends Panel {
       }
       labelToNodeMap.clear();
       // add first row (to go up a folder).
-      Snapshot snapshot = node.getLag().getSnapshot();
+      Snapshot snapshot = root.getLag().getSnapshot();
       table.getTableModel().addRow("..", // artificial ".."
-          (Math.round(factor * node.getRate().getOneMinuteRate()) + "pps"),
-          (Math.round(100.0 * node.getAccessed() / node.getRate().getCount()) + "%"),
+          (Math.round(factor * root.getRate().getOneMinuteRate()) + "pps"),
+          (Math.round(100.0 * root.getAccessed() / root.getRate().getCount()) + "%"),
           Math.round(snapshot.getMedian()) + "ms",
           Math.round(snapshot.get75thPercentile()) + "ms",
-          Math.round(snapshot.get99thPercentile()) + "ms");
+          Math.round(snapshot.get99thPercentile()) + "ms",
+          String.valueOf(root.getEstimatedMetricCardinality()),
+          String.valueOf(root.getEstimatedHostCardinality()));
       // now sort and add the nodes for this folder.
       Ordering<NamespaceBuilder.Node> ordering = Ordering.from(getComparator());
       if (reverseSort) ordering = ordering.reverse();
       List<NamespaceBuilder.Node> sorted = ordering.sortedCopy(nodes);
       int num = 0;
       int newLocation = 0;
-      for (NamespaceBuilder.Node n : sorted) {
-        snapshot = n.getLag().getSnapshot();
-        String flattened = StringUtils.abbreviate(n.getFlattened(), 50);
+      for (NamespaceBuilder.Node node : sorted) {
+        snapshot = node.getLag().getSnapshot();
+        String flattened = StringUtils.abbreviate(node.getFlattened(), 50);
         if (flattened.equals(selectedLabel)) {
           newLocation = num + 1;
         }
-        labelToNodeMap.put(flattened, n);
+        labelToNodeMap.put(flattened, node);
         table.getTableModel().addRow(flattened,
-            (Math.round(factor * n.getRate().getOneMinuteRate()) + "pps"),
-            (Math.round(100.0 * n.getAccessed() / n.getRate().getCount()) + "%"),
+            (Math.round(factor * node.getRate().getOneMinuteRate()) + "pps"),
+            (Math.round(100.0 * node.getAccessed() / node.getRate().getCount()) + "%"),
             Math.round(snapshot.getMedian()) + "ms",
             Math.round(snapshot.get75thPercentile()) + "ms",
-            Math.round(snapshot.get99thPercentile()) + "ms");
+            Math.round(snapshot.get99thPercentile()) + "ms",
+            String.valueOf(node.getEstimatedMetricCardinality()),
+            String.valueOf(node.getEstimatedHostCardinality()));
         num++;
         if (num > 1000) break;
       }
