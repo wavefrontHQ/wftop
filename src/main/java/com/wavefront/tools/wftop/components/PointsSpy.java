@@ -91,9 +91,9 @@ public class PointsSpy {
         useSystemProperties().
         setDefaultRequestConfig(
         RequestConfig.custom().
-            setConnectionRequestTimeout(10_000).
-            setSocketTimeout(10_000).
-            setConnectTimeout(10_000).build()).
+            setConnectionRequestTimeout(60_000).
+            setSocketTimeout(60_000).
+            setConnectTimeout(60_000).build()).
         build();
     this.httpAsyncClient.start();
   }
