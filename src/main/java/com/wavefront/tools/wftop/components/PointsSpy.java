@@ -87,7 +87,9 @@ public class PointsSpy {
   private StringBuilder curr = new StringBuilder();
 
   public PointsSpy() {
-    this.httpAsyncClient = HttpAsyncClients.custom().setDefaultRequestConfig(
+    this.httpAsyncClient = HttpAsyncClients.custom().
+        useSystemProperties().
+        setDefaultRequestConfig(
         RequestConfig.custom().
             setConnectionRequestTimeout(10_000).
             setSocketTimeout(10_000).
