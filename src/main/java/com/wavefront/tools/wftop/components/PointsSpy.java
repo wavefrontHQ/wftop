@@ -8,6 +8,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.wavefront.ingester.AbstractIngesterFormatter;
 import com.wavefront.ingester.ReportPointIngesterFormatter;
+
+import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.config.RequestConfig;
@@ -25,6 +27,8 @@ import wavefront.report.ReportPoint;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.CharBuffer;
 import java.util.*;
 import java.util.concurrent.Future;
@@ -89,9 +93,10 @@ public class PointsSpy {
   public PointsSpy() {
     this.httpAsyncClient = HttpAsyncClients.custom().setDefaultRequestConfig(
         RequestConfig.custom().
-            setConnectionRequestTimeout(10_000).
-            setSocketTimeout(10_000).
-            setConnectTimeout(10_000).build()).
+            setConnectionRequestTimeout(60_000).
+            setSocketTimeout(60_000).
+            setConnectTimeout(60_000).
+            setProxy(getProxy()).build()).
         build();
     this.httpAsyncClient.start();
   }
@@ -282,6 +287,23 @@ public class PointsSpy {
     return builder.toString();
   }
 
+  private HttpHost getProxy() {
+	  String proxyStr = System.getenv("https_proxy");
+	  if (proxyStr == null) System.getenv("HTTPS_PROXY");
+	  if (proxyStr == null) System.getenv("http_proxy");
+	  if (proxyStr == null) System.getenv("HTTP_PROXY");
+	  try {
+		  URL proxyUrl = new URL(proxyStr);
+		  HttpHost proxy = new HttpHost(proxyUrl.getHost(), 
+				  proxyUrl.getPort() != -1 ? proxyUrl.getPort() : proxyUrl.getDefaultPort(), 
+				  proxyUrl.getProtocol());
+		  return proxy;
+	  } catch (MalformedURLException e) {
+		  log.warning("Proxy env var is malformed. Not using proxy. '" + proxyStr + "'");
+	  }
+	  return null;
+  }
+  
   public void setListener(Listener listener) {
     this.listener = listener;
   }
