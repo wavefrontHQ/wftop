@@ -94,7 +94,7 @@
                 <configuration>
                     <!-- value of flags will be interpolated into the java invocation -->
                     <!-- as "java $flags -jar ..." -->
-                    <flags>-Xmx2G</flags>
+                    <flags>-Xmx4G</flags>
 
                     <!-- (optional) name for binary executable, if not set will just -->
                     <!-- make the regular jar artifact executable -->
