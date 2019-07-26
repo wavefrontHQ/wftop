@@ -20,6 +20,9 @@ Wavefront Top (wftop) is an interactive tool for exploring the live metric inges
 ## Screenshots
 
 Setting up wftop (the tool will persist the cluster/token to ~/.wftop)
+In the following screenshot: 
+* Cluster: is the name of your Wavefront instance (`<instance>.wavefront.com`)
+* Token is a [Wavefront API token](https://docs.wavefront.com/wavefront_api.html#generating-an-api-token) for your Wavefront instance. 
 
 ![Setup Screen](https://raw.githubusercontent.com/wavefronthq/wftop/master/screenshots/SetupScreen.png)
 
