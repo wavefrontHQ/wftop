@@ -4,6 +4,7 @@ import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.UniformReservoir;
 import com.google.common.collect.Iterables;
+import com.google.common.util.concurrent.AtomicDouble;
 import net.agkn.hll.HLL;
 
 import java.util.Map;
@@ -35,13 +36,15 @@ public class NamespaceBuilder {
     return root;
   }
 
-  public synchronized void accept(String input, String host, String metric, long timestamp, boolean accessed) {
+  public synchronized void accept(String input, String host, String metric, long timestamp, double value,
+                                  boolean accessed) {
     root.rate.mark();
     MurmurHash3.LongPair longPair = new MurmurHash3.LongPair();
     updateCardinality(root, metric, host, longPair);
     if (accessed) root.accessed++;
     long lag = System.currentTimeMillis() - timestamp;
     root.lag.update(lag);
+    updateNodeMinMax(value, root);
     Node curr = root;
     StringBuilder sb = new StringBuilder();
     int depth = 0;
@@ -69,6 +72,7 @@ public class NamespaceBuilder {
         updateCardinality(node, metric, host, longPair);
         if (accessed) node.accessed++;
         node.lag.update(lag);
+        updateNodeMinMax(value, node);
         curr = node;
         sb.setLength(0);
         depth++;
@@ -86,6 +90,20 @@ public class NamespaceBuilder {
       node.rate.mark();
       if (accessed) node.accessed++;
       node.lag.update(lag);
+      updateNodeMinMax(value, node);
+    }
+  }
+
+  private void updateNodeMinMax(double value, Node node) {
+    while (true) {
+      double min = node.min.get();
+      if (min <= value) break;
+      if (node.min.compareAndSet(min, value)) break;
+    }
+    while (true) {
+      double max = node.max.get();
+      if (max >= value) break;
+      if (node.max.compareAndSet(max, value)) break;
     }
   }
 
@@ -127,6 +145,8 @@ public class NamespaceBuilder {
     private final HLL metricCardinality = new HLL(13, 5);
     private int accessed = 0;
     private boolean limited = false;
+    private final AtomicDouble min = new AtomicDouble(Double.MAX_VALUE);
+    private final AtomicDouble max = new AtomicDouble(-Double.MAX_VALUE);
 
     public Node(String value) {
       this.value = value;
@@ -169,6 +189,18 @@ public class NamespaceBuilder {
 
     public boolean isLimited() {
       return limited;
+    }
+
+    public AtomicDouble getMin() {
+      return min;
+    }
+
+    public AtomicDouble getMax() {
+      return max;
+    }
+
+    public double getRange() {
+      return max.get() - min.get();
     }
   }
 }

@@ -118,18 +118,19 @@ public class WavefrontTop {
         public void onMetricReceived(PointsSpy pointsSpy, boolean accessed, String metric, String host,
                                      Multimap<String, String> pointTags, long timestamp, double value) {
           if (analysisDimension == Dimension.METRIC) {
-            namespaceBuilder.accept(metric, host, metric, timestamp, accessed);
+            namespaceBuilder.accept(metric, host, metric, timestamp, value, accessed);
           } else if (analysisDimension == Dimension.HOST) {
-            namespaceBuilder.accept(host, host, metric, timestamp, accessed);
+            namespaceBuilder.accept(host, host, metric, timestamp, value, accessed);
           } else if (analysisDimension == Dimension.POINT_TAG) {
             // here we are over-counting.
             for (Map.Entry<String, String> entry : pointTags.entries()) {
-              namespaceBuilder.accept(entry.getKey() + "=" + entry.getValue(), host, metric, timestamp, accessed);
+              namespaceBuilder.accept(entry.getKey() + "=" + entry.getValue(), host, metric, timestamp, value,
+                  accessed);
             }
           } else if (analysisDimension == Dimension.POINT_TAG_KEY) {
             // here we are over-counting.
             for (String entry : pointTags.keySet()) {
-              namespaceBuilder.accept(entry, host, metric, timestamp, accessed);
+              namespaceBuilder.accept(entry, host, metric, timestamp, value, accessed);
             }
           }
         }
@@ -290,7 +291,7 @@ public class WavefrontTop {
       @Override
       public void sortRight() {
         pointsNamespacePanel.setSortIndex(
-            Math.min(7, pointsNamespacePanel.getSortIndex() + 1));
+            Math.min(8, pointsNamespacePanel.getSortIndex() + 1));
         refreshPointsNamespacePanel(pointsSpy.getSamplingRate());
       }
 

@@ -46,8 +46,8 @@ public class PointsNamespacePanel extends Panel {
     header.addComponent(path.setLayoutData(BorderLayout.Location.BOTTOM));
     this.addComponent(header.setLayoutData(BorderLayout.Location.TOP));
 
-    this.table = new Table<String>("Namespace", "Est. PPS [↑]", "% Accessed", "Median Lag", "P75 Lag", "P99 Lag",
-        "Est. Metrics", "Est. Hosts") {
+    this.table = new Table<String>("Namespace", "PPS [↑]", "% Acc.", "P50 Lag", "P75 Lag", "P99 Lag",
+        "Num Metrics", "Num Hosts", "Range") {
       @Override
       public Result handleKeyStroke(KeyStroke keyStroke) {
         Result result = super.handleKeyStroke(keyStroke);
@@ -187,6 +187,8 @@ public class PointsNamespacePanel extends Panel {
       } else if (sortIndex == 7) {
         // host cardinality
         return Long.compare(o1.getEstimatedHostCardinality(), o2.getEstimatedHostCardinality());
+      } else if (sortIndex == 8) {
+        return Double.compare(o1.getRange(), o2.getRange());
       } else {
         return 0;
       }
@@ -215,7 +217,8 @@ public class PointsNamespacePanel extends Panel {
           Math.round(snapshot.get75thPercentile()) + "ms",
           Math.round(snapshot.get99thPercentile()) + "ms",
           String.valueOf(root.getEstimatedMetricCardinality()),
-          String.valueOf(root.getEstimatedHostCardinality()));
+          String.valueOf(root.getEstimatedHostCardinality()),
+          String.valueOf(root.getRange()));
       // now sort and add the nodes for this folder.
       Ordering<NamespaceBuilder.Node> ordering = Ordering.from(getComparator());
       if (reverseSort) ordering = ordering.reverse();
@@ -236,7 +239,8 @@ public class PointsNamespacePanel extends Panel {
             Math.round(snapshot.get75thPercentile()) + "ms",
             Math.round(snapshot.get99thPercentile()) + "ms",
             String.valueOf(node.getEstimatedMetricCardinality()),
-            String.valueOf(node.getEstimatedHostCardinality()));
+            String.valueOf(node.getEstimatedHostCardinality()),
+            String.valueOf(node.getRange()));
         num++;
         if (num > 1000) break;
       }
