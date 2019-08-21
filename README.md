@@ -9,6 +9,7 @@ Wavefront Top (wftop) is an interactive tool for exploring the live metric inges
   * Compute per namespace "pps" (for point tags, counting each occurrence)
   * Compute per namespace "% Accessed" (in the last X days, configurable)
   * Compute median, p75 and p99 lag for timestamps of each namespace (compared to wall-clock of the machine running wftop)
+  * Group namespace by proxy or token ingestion source
   * Drill-down into each namespace via selection
   * Customizable separators (defaults to ".", "-", "_")
   * Multiple sort dimensions
@@ -26,26 +27,28 @@ In the following screenshot:
 
 ![Setup Screen](https://raw.githubusercontent.com/wavefronthq/wftop/master/screenshots/SetupScreen.png)
 
-UI to browse top-level metric namespaces (delimiters are configurable and can be changed in the "Config" screen). Est. PPS estimates the pps sent by a particular namespace and % Accessed indicates how many of those points are found to be access in the last X days (configuration in "Config" screen between 1 and 60). Lag information is also shown which shows the median, p75 and p99 lag of metrics for each namespace.
+UI to browse top-level metric namespaces (delimiters are configurable and can be changed in the "Config" screen). Est. PPS estimates the pps sent by a particular namespace and % Accessed indicates how many of those points are found to be access in the last X days (configuration in "Config" screen between 1 and 60). Lag information is also shown which shows the median, p75 and p99 lag of metrics for each namespace. Range is the range of values the metric reports.
 
 ![Setup Screen](https://raw.githubusercontent.com/wavefronthq/wftop/master/screenshots/BrowseScreen.png)
 
-Selecting a "folder" allows the user to drilldown into a single metric namespace.
+SelectinYg a "folder" allows the user to drilldown into a single metric namespace.
 
 ![Setup Screen](https://raw.githubusercontent.com/wavefronthq/wftop/master/screenshots/DrillDown.png)
 
-Configuration screen to control sample rate (typical Wavefront clusters allow up to 5% sampling, wftop will automatically scale all pps measurements based on this number and backend data distribution topologies). Separators (each) control how metrics are split up into "folders". Usage lookback (days) control when a metric is considered "used" (a value of 7 means the metric would be considered used if it was accessed in any of the last 7 days).
+Configuration screen to control group by metric ingestion source. Configure sample rate (typical Wavefront clusters allow up to 5% sampling, wftop will automatically scale all pps measurements based on this number and backend data distribution topologies). Separators (each) control how metrics are split up into "folders". Usage lookback (days) control when a metric is considered "used" (a value of 7 means the metric would be considered used if it was accessed in any of the last 7 days).
 
 ![Setup Screen](https://raw.githubusercontent.com/wavefronthq/wftop/master/screenshots/ConfigurationScreen.png)
 
 ## Requirements
   * Java >= 1.8
   * maven (to compile)
-  * Any Wavefront cluster >= 2019-18.8
+  * Any Wavefront cluster >= 2019-18.8 (33.8)
     * Older Wavefront clusters will still work with wftop but pps and % Accessed information will not be accurate/available.
+  * Group by sources
+    * Cluster >= 2019-30.x (36.x)
 
 ## Overview
-  * Simply run mvn clean install to compile the tool
+  * Simply run ```mvn clean install -DskipTests```  to compile the tool
   * ./target/wftop is all you need to do afterwards
   
 ## To start developing

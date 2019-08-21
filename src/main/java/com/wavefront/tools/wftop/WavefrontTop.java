@@ -319,7 +319,7 @@ public class WavefrontTop {
   }
 
   /**
-   * namespace path built as: [sourceRoot, sourceNode, NSB root, NSB nodes, ..]
+   * Path built as: [rootNode, sourceNode, NamespaceNode root, NamespaceNode node, ..]
    */
   private void computePath() {
     StringBuilder path = new StringBuilder();
