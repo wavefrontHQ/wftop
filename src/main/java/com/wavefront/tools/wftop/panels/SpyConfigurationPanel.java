@@ -22,6 +22,7 @@ public class SpyConfigurationPanel extends BasicWindow {
   private final TextBox maxChildrenTB;
 
   private RadioBoxList<String> dimensionRadioBL = new RadioBoxList<>(new TerminalSize(20, 4));
+  private RadioBoxList<String> ingestionRadioBL = new RadioBoxList<>(new TerminalSize(31, 2));
 
   private Listener listener;
 
@@ -43,6 +44,12 @@ public class SpyConfigurationPanel extends BasicWindow {
     dimensionRadioBL.addItem("Point Tag");
     dimensionRadioBL.setCheckedItemIndex(0);
     form.addComponent(dimensionRadioBL);
+
+    form.addComponent(new Label("Group By:"));
+    ingestionRadioBL.addItem("None");
+    ingestionRadioBL.addItem("Wavefront Ingestion Source");
+    ingestionRadioBL.setCheckedItemIndex(0);
+    form.addComponent(ingestionRadioBL);
 
     form.addComponent(new Label("Sampling Rate (0 < r <= 1): "));
     this.samplingRateTB = new TextBox(new TerminalSize(10, 1));
@@ -180,6 +187,10 @@ public class SpyConfigurationPanel extends BasicWindow {
       default:
         return Dimension.METRIC;
     }
+  }
+
+  public boolean getIngestionSource(){
+    return ingestionRadioBL.getCheckedItem().equals("Wavefront Ingestion Source");
   }
 
   public void setSamplingRate(double rate) {

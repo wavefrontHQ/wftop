@@ -8,7 +8,7 @@ import com.googlecode.lanterna.gui2.*;
 import com.googlecode.lanterna.gui2.table.Table;
 import com.googlecode.lanterna.input.KeyStroke;
 import com.googlecode.lanterna.input.KeyType;
-import com.wavefront.tools.wftop.components.NamespaceBuilder;
+import com.wavefront.tools.wftop.components.Node;
 import org.apache.commons.lang.StringUtils;
 
 import javax.annotation.Nullable;
@@ -28,7 +28,7 @@ public class PointsNamespacePanel extends Panel {
 
   private Listener listener = null;
   private Table<String> table;
-  private Map<String, NamespaceBuilder.Node> labelToNodeMap = new HashMap<>();
+  private Map<String, Node> labelToNodeMap = new HashMap<>();
   private int sortIndex = 1;
   private boolean reverseSort = true;
 
@@ -47,7 +47,7 @@ public class PointsNamespacePanel extends Panel {
     this.addComponent(header.setLayoutData(BorderLayout.Location.TOP));
 
     this.table = new Table<String>("Namespace", "PPS [↑]", "% Acc.", "P50 Lag", "P75 Lag", "P99 Lag",
-        "Num Metrics", "Num Hosts", "Range") {
+            "Num Metrics", "Num Hosts", "Range") {
       @Override
       public Result handleKeyStroke(KeyStroke keyStroke) {
         Result result = super.handleKeyStroke(keyStroke);
@@ -72,7 +72,7 @@ public class PointsNamespacePanel extends Panel {
         if (this.table.getSelectedRow() == 0) {
           listener.goUp();
         } else {
-          NamespaceBuilder.Node node =
+          Node node =
               this.labelToNodeMap.get(this.table.getTableModel().getRow(this.table.getSelectedRow()).get(0));
           if (node != null) {
             listener.selectElement(node);
@@ -160,7 +160,7 @@ public class PointsNamespacePanel extends Panel {
     this.table.setVisibleRows(count);
   }
 
-  private Comparator<NamespaceBuilder.Node> getComparator() {
+  private Comparator<Node> getComparator() {
     return (o1, o2) -> {
       if (sortIndex == 0) {
         return o1.getFlattened().compareTo(o2.getFlattened());
@@ -195,7 +195,7 @@ public class PointsNamespacePanel extends Panel {
     };
   }
 
-  public void renderNodes(NamespaceBuilder.Node root, double factor, Collection<NamespaceBuilder.Node> nodes) {
+  public void renderNodes(Node root, double factor, Collection<Node> nodes) {
     synchronized (table) {
       @Nullable
       String selectedLabel = null;
@@ -220,12 +220,12 @@ public class PointsNamespacePanel extends Panel {
           String.valueOf(root.getEstimatedHostCardinality()),
           String.valueOf(root.getRange()));
       // now sort and add the nodes for this folder.
-      Ordering<NamespaceBuilder.Node> ordering = Ordering.from(getComparator());
+      Ordering<Node> ordering = Ordering.from(getComparator());
       if (reverseSort) ordering = ordering.reverse();
-      List<NamespaceBuilder.Node> sorted = ordering.sortedCopy(nodes);
+      List<Node> sorted = ordering.sortedCopy(nodes);
       int num = 0;
       int newLocation = 0;
-      for (NamespaceBuilder.Node node : sorted) {
+      for (Node node : sorted) {
         snapshot = node.getLag().getSnapshot();
         String flattened = StringUtils.abbreviate(node.getFlattened(), 50);
         if (flattened.equals(selectedLabel)) {
@@ -294,7 +294,7 @@ public class PointsNamespacePanel extends Panel {
 
     void reverseSort();
 
-    void selectElement(NamespaceBuilder.Node element);
+    void selectElement(Node<?> element);
 
     void goUp();
   }

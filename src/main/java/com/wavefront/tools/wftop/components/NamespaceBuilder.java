@@ -1,14 +1,8 @@
 package com.wavefront.tools.wftop.components;
 
-import com.codahale.metrics.Histogram;
-import com.codahale.metrics.Meter;
-import com.codahale.metrics.UniformReservoir;
-import com.google.common.collect.Iterables;
-import com.google.common.util.concurrent.AtomicDouble;
-import net.agkn.hll.HLL;
+import com.google.common.annotations.VisibleForTesting;
 
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Ingest metric names and produce a tree of namespaces.
@@ -21,18 +15,14 @@ public class NamespaceBuilder {
   private int depthLimit = 10;
   private int branchLimit = 1000;
 
-  private Node root = new Node("");
+  private NamespaceNode root = new NamespaceNode("");
 
   public void setSeparatorCharacters(String separators) {
     this.separators = separators;
-    this.root = new Node("");
+    this.root = new NamespaceNode("");
   }
 
-  public String getSeparatorCharacters() {
-    return separators;
-  }
-
-  public Node getRoot() {
+  public NamespaceNode getRoot() {
     return root;
   }
 
@@ -45,7 +35,7 @@ public class NamespaceBuilder {
     long lag = System.currentTimeMillis() - timestamp;
     root.lag.update(lag);
     updateNodeMinMax(value, root);
-    Node curr = root;
+    NamespaceNode curr = root;
     StringBuilder sb = new StringBuilder();
     int depth = 0;
     boolean bail = false;
@@ -61,13 +51,13 @@ public class NamespaceBuilder {
       sb.append(c);
       if (separator) {
         String soFar = sb.toString();
-        Map<String, Node> lookupTable = curr.nodes;
+        Map<String, NamespaceNode> lookupTable = curr.nodes;
         if (lookupTable.size() == branchLimit || curr.limited) {
           curr.limited = true;
           bail = true;
           break;
         }
-        Node node = lookupTable.computeIfAbsent(soFar, Node::new);
+        NamespaceNode node = lookupTable.computeIfAbsent(soFar, NamespaceNode::new);
         node.rate.mark();
         updateCardinality(node, metric, host, longPair);
         if (accessed) node.accessed++;
@@ -85,16 +75,30 @@ public class NamespaceBuilder {
     // might have another node at the end.
     if (!bail && sb.length() > 0) {
       String soFar = sb.toString();
-      Map<String, Node> lookupTable = curr.nodes;
-      Node node = lookupTable.computeIfAbsent(soFar, Node::new);
+      Map<String, NamespaceNode> lookupTable = curr.nodes;
+      NamespaceNode node = lookupTable.computeIfAbsent(soFar, NamespaceNode::new);
       node.rate.mark();
       if (accessed) node.accessed++;
       node.lag.update(lag);
       updateNodeMinMax(value, node);
     }
   }
+  @VisibleForTesting
+  public void reset() {
+    this.root = new NamespaceNode("");
+  }
 
-  private void updateNodeMinMax(double value, Node node) {
+  @VisibleForTesting
+  public int getMaxDepth() {
+    return depthLimit;
+  }
+
+  @VisibleForTesting
+  public int getMaxChildren() {
+    return branchLimit;
+  }
+
+  private void updateNodeMinMax(double value, NamespaceNode node) {
     while (true) {
       double min = node.min.get();
       if (min <= value) break;
@@ -107,18 +111,6 @@ public class NamespaceBuilder {
     }
   }
 
-  public void reset() {
-    this.root = new Node("");
-  }
-
-  public int getMaxDepth() {
-    return depthLimit;
-  }
-
-  public int getMaxChildren() {
-    return branchLimit;
-  }
-
   public void setMaxDepth(int maxDepth) {
     this.depthLimit = maxDepth;
   }
@@ -127,80 +119,12 @@ public class NamespaceBuilder {
     this.branchLimit = maxChildren;
   }
 
-  private void updateCardinality(Node node, String metric, String host, MurmurHash3.LongPair reuse) {
+  private void updateCardinality(NamespaceNode node, String metric, String host, MurmurHash3.LongPair reuse) {
     byte[] hostBytes = host.getBytes();
     MurmurHash3.murmurhash3_x64_128(hostBytes, 0, hostBytes.length, 0, reuse);
     node.hostCardinality.addRaw(reuse.val1);
     byte[] metricBytes = metric.getBytes();
     MurmurHash3.murmurhash3_x64_128(metricBytes, 0, metricBytes.length, 0, reuse);
     node.metricCardinality.addRaw(reuse.val1);
-  }
-
-  public class Node {
-    private final Map<String, Node> nodes = new ConcurrentHashMap<>();
-    private final String value;
-    private final Histogram lag = new Histogram(new UniformReservoir());
-    private final Meter rate = new Meter();
-    private final HLL hostCardinality = new HLL(13, 5);
-    private final HLL metricCardinality = new HLL(13, 5);
-    private int accessed = 0;
-    private boolean limited = false;
-    private final AtomicDouble min = new AtomicDouble(Double.MAX_VALUE);
-    private final AtomicDouble max = new AtomicDouble(-Double.MAX_VALUE);
-
-    public Node(String value) {
-      this.value = value;
-    }
-
-    public Map<String, Node> getNodes() {
-      return nodes;
-    }
-
-    public String getValue() {
-      return value;
-    }
-
-    public String getFlattened() {
-      if (nodes.size() == 1) {
-        return value + Iterables.getOnlyElement(nodes.values()).getFlattened();
-      }
-      return value;
-    }
-
-    public long getEstimatedHostCardinality() {
-      return hostCardinality.cardinality();
-    }
-
-    public long getEstimatedMetricCardinality() {
-      return metricCardinality.cardinality();
-    }
-
-    public Histogram getLag() {
-      return lag;
-    }
-
-    public int getAccessed() {
-      return accessed;
-    }
-
-    public Meter getRate() {
-      return rate;
-    }
-
-    public boolean isLimited() {
-      return limited;
-    }
-
-    public AtomicDouble getMin() {
-      return min;
-    }
-
-    public AtomicDouble getMax() {
-      return max;
-    }
-
-    public double getRange() {
-      return max.get() - min.get();
-    }
   }
 }
