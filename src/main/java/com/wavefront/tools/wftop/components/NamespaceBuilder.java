@@ -2,6 +2,7 @@ package com.wavefront.tools.wftop.components;
 
 import com.google.common.annotations.VisibleForTesting;
 
+import javax.annotation.Nullable;
 import java.util.Map;
 
 /**
@@ -11,7 +12,7 @@ import java.util.Map;
  */
 public class NamespaceBuilder {
 
-  private String separators = ".-_";
+  private String separators = ".-_=";
   private int depthLimit = 10;
   private int branchLimit = 1000;
 
@@ -26,15 +27,22 @@ public class NamespaceBuilder {
     return root;
   }
 
-  public synchronized void accept(String input, String host, String metric, long timestamp, double value,
-                                  boolean accessed) {
-    root.rate.mark();
+  /**
+   * @param spyOnPoint When spy on ID (spyOnPoint == false), there is no access, lag, or range information.
+   */
+  public synchronized void accept(String input, @Nullable String host,
+                                  @Nullable String metric, long timestamp, double value,
+                                  boolean accessed, boolean spyOnPoint) {
     MurmurHash3.LongPair longPair = new MurmurHash3.LongPair();
+    long lag = 0;
+    root.rate.mark();
     updateCardinality(root, metric, host, longPair);
-    if (accessed) root.accessed++;
-    long lag = System.currentTimeMillis() - timestamp;
-    root.lag.update(lag);
-    updateNodeMinMax(value, root);
+    if (spyOnPoint) {
+      if (accessed) root.accessed++;
+      lag = System.currentTimeMillis() - timestamp;
+      root.lag.update(lag);
+      updateNodeMinMax(value, root);
+    }
     NamespaceNode curr = root;
     StringBuilder sb = new StringBuilder();
     int depth = 0;
@@ -60,9 +68,11 @@ public class NamespaceBuilder {
         NamespaceNode node = lookupTable.computeIfAbsent(soFar, NamespaceNode::new);
         node.rate.mark();
         updateCardinality(node, metric, host, longPair);
-        if (accessed) node.accessed++;
-        node.lag.update(lag);
-        updateNodeMinMax(value, node);
+        if (spyOnPoint) {
+          if (accessed) node.accessed++;
+          node.lag.update(lag);
+          updateNodeMinMax(value, node);
+        }
         curr = node;
         sb.setLength(0);
         depth++;
@@ -78,11 +88,14 @@ public class NamespaceBuilder {
       Map<String, NamespaceNode> lookupTable = curr.nodes;
       NamespaceNode node = lookupTable.computeIfAbsent(soFar, NamespaceNode::new);
       node.rate.mark();
-      if (accessed) node.accessed++;
-      node.lag.update(lag);
-      updateNodeMinMax(value, node);
+      if (spyOnPoint) {
+        if (accessed) node.accessed++;
+        node.lag.update(lag);
+        updateNodeMinMax(value, node);
+      }
     }
   }
+
   @VisibleForTesting
   public void reset() {
     this.root = new NamespaceNode("");
@@ -119,7 +132,8 @@ public class NamespaceBuilder {
     this.branchLimit = maxChildren;
   }
 
-  private void updateCardinality(NamespaceNode node, String metric, String host, MurmurHash3.LongPair reuse) {
+  private void updateCardinality(NamespaceNode node, String metric, String host,
+                                 MurmurHash3.LongPair reuse) {
     byte[] hostBytes = host.getBytes();
     MurmurHash3.murmurhash3_x64_128(hostBytes, 0, hostBytes.length, 0, reuse);
     node.hostCardinality.addRaw(reuse.val1);

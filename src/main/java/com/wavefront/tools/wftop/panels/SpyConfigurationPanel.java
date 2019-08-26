@@ -5,6 +5,7 @@ import com.googlecode.lanterna.TerminalSize;
 import com.googlecode.lanterna.gui2.*;
 import com.googlecode.lanterna.gui2.dialogs.MessageDialogBuilder;
 import com.wavefront.tools.wftop.components.Dimension;
+import com.wavefront.tools.wftop.components.Type;
 
 import java.util.regex.Pattern;
 
@@ -20,9 +21,26 @@ public class SpyConfigurationPanel extends BasicWindow {
   private final TextBox usageDaysThresholdTB;
   private final TextBox maxDepthTB;
   private final TextBox maxChildrenTB;
+  private final Label groupLabel = new Label("Group By: ");
+  private final Label analysisLabel = new Label("Analysis Dimension:");
+  private final Label typeLabel =  new Label("Type: ");
+  private final Label rateLabel = new Label("Sampling Rate (0 < r <= 0.05): ");
 
+  private RadioBoxList<String> spyRadioBL = new RadioBoxList<>(new TerminalSize(20, 2));
   private RadioBoxList<String> dimensionRadioBL = new RadioBoxList<>(new TerminalSize(20, 4));
+  private RadioBoxList<String> typeRadioBL = new RadioBoxList<>(new TerminalSize(20, 6));
   private RadioBoxList<String> ingestionRadioBL = new RadioBoxList<>(new TerminalSize(31, 2));
+
+  private Panel form;
+  private boolean startOnGroupBy = false;
+  private int dimensionOrTypeIndex;
+  private double startRate;
+  private String startSeparators;
+  private int startUsageDays;
+  private int startMaxDepth;
+  private int startMaxChildren;
+  private boolean startOnPoint;
+  private boolean spyOnPoint = true;
 
   private Listener listener;
 
@@ -35,23 +53,22 @@ public class SpyConfigurationPanel extends BasicWindow {
     contents.addComponent(new EmptySpace(new TerminalSize(1, 1)));
 
     // input boxes.
-    Panel form = new Panel(new GridLayout(2));
+    form = new Panel(new GridLayout(2));
 
-    form.addComponent(new Label("Analysis Dimension:"));
-    dimensionRadioBL.addItem("Metric");
-    dimensionRadioBL.addItem("Host");
-    dimensionRadioBL.addItem("Point Tag Key");
-    dimensionRadioBL.addItem("Point Tag");
-    dimensionRadioBL.setCheckedItemIndex(0);
-    form.addComponent(dimensionRadioBL);
+    form.addComponent(new Label("Spy On:"));
+    spyRadioBL.addItem("Points");
+    spyRadioBL.addItem("Id Creations");
+    spyRadioBL.setCheckedItemIndex(0);
+    spyRadioBL.addListener((int selectedIndex, int previousSelection) -> {
+      if (selectedIndex == 0){
+        setSpyOnPoint(form);
+      } else if (selectedIndex == 1){
+        setSpyOnID(form);
+      }
+    });
+    form.addComponent(spyRadioBL);
 
-    form.addComponent(new Label("Group By:"));
-    ingestionRadioBL.addItem("None");
-    ingestionRadioBL.addItem("Wavefront Ingestion Source");
-    ingestionRadioBL.setCheckedItemIndex(0);
-    form.addComponent(ingestionRadioBL);
-
-    form.addComponent(new Label("Sampling Rate (0 < r <= 1): "));
+    form.addComponent(rateLabel);
     this.samplingRateTB = new TextBox(new TerminalSize(10, 1));
     this.samplingRateTB.setValidationPattern(Pattern.compile("[0-9.]+"));
     form.addComponent(samplingRateTB);
@@ -75,6 +92,27 @@ public class SpyConfigurationPanel extends BasicWindow {
     this.maxChildrenTB.setValidationPattern(Pattern.compile("[0-9]+"));
     form.addComponent(maxChildrenTB);
 
+    form.addComponent(analysisLabel);
+    dimensionRadioBL.addItem("Metric");
+    dimensionRadioBL.addItem("Host");
+    dimensionRadioBL.addItem("Point Tag");
+    dimensionRadioBL.addItem("Point Tag Key");
+    dimensionRadioBL.setCheckedItemIndex(0);
+    form.addComponent(dimensionRadioBL);
+
+    typeRadioBL.addItem("Metric");
+    typeRadioBL.addItem("Host");
+    typeRadioBL.addItem("Point Tag");
+    typeRadioBL.addItem("Histogram");
+    typeRadioBL.addItem("Span");
+    typeRadioBL.setCheckedItemIndex(0);
+
+    form.addComponent(groupLabel);
+    ingestionRadioBL.addItem("None");
+    ingestionRadioBL.addItem("Wavefront Ingestion Source");
+    ingestionRadioBL.setCheckedItemIndex(0);
+    form.addComponent(ingestionRadioBL);
+
     contents.addComponent(form);
     contents.addComponent(new EmptySpace(new TerminalSize(1, 1)));
 
@@ -85,9 +123,12 @@ public class SpyConfigurationPanel extends BasicWindow {
     Button cancelBtn = new Button("Cancel");
     buttons.addComponent(cancelBtn);
     cancelBtn.addListener(button -> {
+      resetConfigurations(form);
       gui.removeWindow(this);
     });
     okBtn.addListener(button -> {
+      this.spyOnPoint = form.containsComponent(dimensionRadioBL);
+      startParameters(spyOnPoint);
       SpyConfigurationPanel panel = SpyConfigurationPanel.this;
       if (panel.listener != null) {
         // validate configuration.
@@ -103,6 +144,10 @@ public class SpyConfigurationPanel extends BasicWindow {
           new MessageDialogBuilder().setText("Invalid sample rate, must be > 0 and <= 1").setTitle("Invalid Input").
               build().showDialog(gui);
           return;
+        } else if (spyOnPoint && rate > 0.05){
+            new MessageDialogBuilder().setText("Invalid sample rate, must be > 0 and <= 0.05").
+                    setTitle("Invalid Input").build().showDialog(gui);
+            return;
         }
         int usageDaysThreshold;
         try {
@@ -112,7 +157,7 @@ public class SpyConfigurationPanel extends BasicWindow {
               build().showDialog(gui);
           return;
         }
-        if (usageDaysThreshold < 1 || usageDaysThreshold > 60) {
+        if ((usageDaysThreshold < 1 || usageDaysThreshold > 60) && spyOnPoint) {
           new MessageDialogBuilder().setText("Invalid usage days threshold, must be > 0 and <= 60").
               setTitle("Invalid Input").build().showDialog(gui);
           return;
@@ -151,8 +196,87 @@ public class SpyConfigurationPanel extends BasicWindow {
     this.setComponent(contents);
   }
 
+  private void setSpyOnPoint(Panel form){
+    usageDaysThresholdTB.setReadOnly(false);
+    form.removeComponent(typeLabel);
+    form.removeComponent(typeRadioBL);
+    form.addComponent(analysisLabel);
+    form.addComponent(dimensionRadioBL);
+    if (!form.containsComponent(ingestionRadioBL)) {
+      form.addComponent(groupLabel);
+      form.addComponent(ingestionRadioBL);
+    }
+    setSamplingRate(0.01);
+    rateLabel.setText("Sampling Rate (0 < r <= 0.05): ");
+  }
+
+  private void setSpyOnID(Panel form){
+    usageDaysThresholdTB.setText("7").setReadOnly(true);
+    form.removeComponent(groupLabel);
+    form.removeComponent(ingestionRadioBL);
+    form.removeComponent(analysisLabel);
+    form.removeComponent(dimensionRadioBL);
+
+    form.addComponent(typeLabel);
+    form.addComponent(typeRadioBL);
+    setSamplingRate(1);
+    rateLabel.setText("Sampling Rate (0 < r <= 1): ");
+  }
+
   public void setListener(Listener listener) {
     this.listener = listener;
+  }
+
+  public void startParameters(boolean startOnPoint) {
+    if (startOnPoint){
+      dimensionOrTypeIndex = dimensionRadioBL.getCheckedItemIndex();
+      startOnGroupBy = (ingestionRadioBL.getCheckedItemIndex() == 1);
+    } else {
+      dimensionOrTypeIndex = typeRadioBL.getCheckedItemIndex();
+    }
+    this.startOnPoint = startOnPoint;
+    startRate = getSamplingRate();
+    startSeparators = getSeparatorCharacters();
+    startUsageDays = getUsageThresholdDays();
+    startMaxDepth = getMaxDepth();
+    startMaxChildren = getMaxChildren();
+  }
+
+  /**
+   * Reverts configurations when user cancels.
+   */
+  private void resetConfigurations(Panel form) {
+    setSamplingRate(startRate);
+    setSeparatorCharacters(startSeparators);
+    setUsageDaysThreshold(startUsageDays);
+    setMaxDepth(startMaxDepth);
+    setMaxChildren(startMaxChildren);
+    spyRadioBL.setCheckedItemIndex((startOnPoint) ? 0 : 1);
+    if (startOnPoint){
+      //Started on Point but currently was on ID screen
+      if (!form.containsComponent(dimensionRadioBL)) {
+        form.addComponent(analysisLabel);
+        form.addComponent(dimensionRadioBL);
+        dimensionRadioBL.setCheckedItemIndex(dimensionOrTypeIndex);
+
+        form.addComponent(groupLabel);
+        form.addComponent(ingestionRadioBL);
+        ingestionRadioBL.setCheckedItemIndex((startOnGroupBy) ? 1 : 0);
+      } else {
+        if (dimensionRadioBL.getCheckedItemIndex() != dimensionOrTypeIndex){
+          dimensionRadioBL.setCheckedItemIndex(dimensionOrTypeIndex);
+        }
+        ingestionRadioBL.setCheckedItemIndex((startOnGroupBy) ? 1 : 0);
+      }
+    }
+    //Started on ID but currently on Point Screen
+    else if (!form.containsComponent(typeRadioBL)){
+      form.addComponent(typeLabel);
+      form.addComponent(typeRadioBL);
+      typeRadioBL.setCheckedItemIndex(dimensionOrTypeIndex);
+    } else {
+      typeRadioBL.setCheckedItemIndex(dimensionOrTypeIndex);
+    }
   }
 
   public double getSamplingRate() {
@@ -160,7 +284,7 @@ public class SpyConfigurationPanel extends BasicWindow {
   }
 
   public String getSeparatorCharacters() {
-    return separatorCharactersTB.getText();
+    return this.separatorCharactersTB.getText();
   }
 
   public int getUsageThresholdDays() {
@@ -189,6 +313,22 @@ public class SpyConfigurationPanel extends BasicWindow {
     }
   }
 
+  public Type getType() {
+    switch(typeRadioBL.getCheckedItem()){
+      case "Host":
+        return Type.HOST;
+      case "Point Tag":
+        return Type.POINT_TAG;
+      case "Histogram":
+        return Type.HISTOGRAM;
+      case "Span":
+        return Type.SPAN;
+      case "Metric":
+      default:
+        return Type.METRIC;
+    }
+  }
+
   public boolean getIngestionSource(){
     return ingestionRadioBL.getCheckedItem().equals("Wavefront Ingestion Source");
   }
@@ -211,6 +351,10 @@ public class SpyConfigurationPanel extends BasicWindow {
 
   public void setMaxChildren(int maxChildren) {
     this.maxChildrenTB.setText(String.valueOf(maxChildren));
+  }
+
+  public boolean getSpyOnPoint() {
+    return this.spyOnPoint;
   }
 
   public interface Listener {

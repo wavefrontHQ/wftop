@@ -1,5 +1,6 @@
 package com.wavefront.tools.wftop.components;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ArrayListMultimap;
@@ -34,8 +35,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Component that connects via HTTPS to a Wavefront cluster, establishes the connection and attempts to spy with a set
- * of parameters.
+ * Component that connects via HTTPS to a Wavefront cluster, establishes the connection and attempts
+ * to spy with a set of parameters.
  *
  * @author Clement Pang (clement@wavefront.com).
  */
@@ -75,6 +76,14 @@ public class PointsSpy {
    */
   private String hostPrefix = "";
   /**
+   * Type prefix to further cull the data set.
+   */
+  private String typePrefix = "";
+  /**
+   * Name prefix to further cull the data set.
+   */
+  private String namePrefix = "";
+  /**
    * Point tag keys that must be present on the returned data.
    */
   private Set<String> pointTagKeys = Collections.emptySet();
@@ -82,6 +91,10 @@ public class PointsSpy {
    * Sampling rate, must be > 0 and <= 1.
    */
   private double samplingRate = 0.01;
+  /**
+   * Determine what to Spy on.
+   */
+  private boolean spyOnPoint = true;
 
   private Listener listener;
   private StringBuilder curr = new StringBuilder();
@@ -90,12 +103,16 @@ public class PointsSpy {
     this.httpAsyncClient = HttpAsyncClients.custom().
         useSystemProperties().
         setDefaultRequestConfig(
-        RequestConfig.custom().
-            setConnectionRequestTimeout(60_000).
-            setSocketTimeout(60_000).
-            setConnectTimeout(60_000).build()).
+            RequestConfig.custom().
+                setConnectionRequestTimeout(60_000).
+                setSocketTimeout(60_000).
+                setConnectTimeout(60_000).build()).
         build();
     this.httpAsyncClient.start();
+  }
+
+  public void setSpyOn(boolean SpyOnPoint) {
+    this.spyOnPoint = SpyOnPoint;
   }
 
   public void setSamplingRate(double samplingRate) {
@@ -104,6 +121,19 @@ public class PointsSpy {
 
   public void setUsageDaysThreshold(int threshold) {
     this.usageDaysThreshold = threshold;
+  }
+
+  public void setParameters(String clusterUrl, String token,
+                            @Nullable String typePrefix, @Nullable String namePrefix,
+                            double samplingRate) {
+    if (samplingRate <= 0 || samplingRate > 1) {
+      throw new IllegalArgumentException("Cannot set sampling rate to <= 0 or > 1");
+    }
+    this.clusterUrl = clusterUrl;
+    this.token = token;
+    this.typePrefix = Strings.nullToEmpty(typePrefix);
+    this.namePrefix = Strings.nullToEmpty(namePrefix);
+    this.samplingRate = samplingRate;
   }
 
   /**
@@ -154,8 +184,20 @@ public class PointsSpy {
     return hostPrefix;
   }
 
+  public String getTypePrefix() {
+    return typePrefix;
+  }
+
+  public String getNamePrefix() {
+    return namePrefix;
+  }
+
   public Set<String> getPointTagKeys() {
     return pointTagKeys;
+  }
+
+  public boolean getSpyOn() {
+    return this.spyOnPoint;
   }
 
   public double getSamplingRate() {
@@ -163,8 +205,8 @@ public class PointsSpy {
   }
 
   /**
-   * Start the spying stream (will invoke listeners). Stops the current stream if one is already in-flight (there will
-   * only ever be one stream of points coming in from one connection.
+   * Start the spying stream (will invoke listeners). Stops the current stream if one is already
+   * in-flight (there will only ever be one stream of points coming in from one connection.
    */
   public void start() {
     synchronized (this) {
@@ -184,7 +226,8 @@ public class PointsSpy {
               if (response.getStatusLine().getStatusCode() != 200) {
                 if (listener != null) {
                   listener.onConnectivityChanged(PointsSpy.this, false,
-                      response.getStatusLine().getStatusCode() + " " + response.getStatusLine().getReasonPhrase());
+                      response.getStatusLine().getStatusCode() + " " +
+                          response.getStatusLine().getReasonPhrase());
                 }
               } else {
                 log.info("Spy request established");
@@ -203,7 +246,8 @@ public class PointsSpy {
               // if the stream ever finishes, we are no longer connected (the server enforces a time limit).
               if (connected.getAndSet(false)) {
                 if (listener != null) {
-                  listener.onConnectivityChanged(PointsSpy.this, false, "Stream Interrupted");
+                  listener.onConnectivityChanged(PointsSpy.this, false,
+                      "Stream Interrupted");
                 }
               }
               return null;
@@ -240,7 +284,8 @@ public class PointsSpy {
               log.log(Level.WARNING, "Spy request failed (will reconnect)", ex);
               httpGet.abort();
               if (PointsSpy.this.listener != null) {
-                PointsSpy.this.listener.onConnectivityChanged(PointsSpy.this, false, "DISCONNECTED: " + ex.getMessage());
+                PointsSpy.this.listener.onConnectivityChanged(PointsSpy.this,
+                    false, "DISCONNECTED: " + ex.getMessage());
               }
               start();
             }
@@ -267,18 +312,28 @@ public class PointsSpy {
     }
   }
 
-  private String getSpyUrl() {
+  @VisibleForTesting
+  protected String getSpyUrl() {
     URIBuilder builder = new URIBuilder();
-    builder.setScheme("https").setHost(clusterUrl).setPath("/api/spy/points");
     List<NameValuePair> params = new ArrayList<>();
-    params.add(new BasicNameValuePair("usage", "true"));
-    params.add(new BasicNameValuePair("sampling", String.valueOf(samplingRate)));
-    params.add(new BasicNameValuePair("includeScalingFactor", "true"));
-    params.add(new BasicNameValuePair("metric", metricPrefix));
-    params.add(new BasicNameValuePair("host", hostPrefix));
-    params.add(new BasicNameValuePair("usageThresholdDays", String.valueOf(usageDaysThreshold)));
-    if (!pointTagKeys.isEmpty()) {
-      params.add(new BasicNameValuePair("pointTagKey", Joiner.on(",").join(pointTagKeys)));
+    if (spyOnPoint) {
+      builder.setScheme("https").setHost(clusterUrl).setPath("/api/spy/points");
+      params.add(new BasicNameValuePair("usage", "true"));
+      params.add(new BasicNameValuePair("sampling", String.valueOf(samplingRate)));
+      params.add(new BasicNameValuePair("includeScalingFactor", "true"));
+      params.add(new BasicNameValuePair("metric", metricPrefix));
+      params.add(new BasicNameValuePair("host", hostPrefix));
+      params.add(new BasicNameValuePair("usageThresholdDays",
+          String.valueOf(usageDaysThreshold)));
+      if (!pointTagKeys.isEmpty()) {
+        params.add(new BasicNameValuePair("pointTagKey", Joiner.on(",").join(pointTagKeys)));
+      }
+    } else {
+      builder.setScheme("https").setHost(clusterUrl).setPath("/api/spy/ids");
+      params.add(new BasicNameValuePair("type", typePrefix));
+      params.add(new BasicNameValuePair("name", namePrefix));
+      params.add(new BasicNameValuePair("includeScalingFactor", "true"));
+      params.add(new BasicNameValuePair("sampling", String.valueOf(samplingRate)));
     }
     builder.setParameters(params);
     return builder.toString();
@@ -303,20 +358,69 @@ public class PointsSpy {
       } catch (NumberFormatException ex) {
         log.warning("Cannot parse backends line: " + line);
       }
-    } else if (line.startsWith("[UNACCESSED] ")) {
-      parseMetric(false, line.substring(13));
-    } else if (line.startsWith("[ACCESSED]   ")) {
-      parseMetric(true, line.substring(13));
-    } else {
-      // for old wavefront clusters, no usage information is returned.
-      try {
-        parseMetric(false, line);
-      } catch (Throwable t) {
-        // ignored.
+    }
+    if (spyOnPoint) {
+      if (line.startsWith("[UNACCESSED] ")) {
+        parseMetric(false, line.substring(13));
+      } else if (line.startsWith("[ACCESSED]   ")) {
+        parseMetric(true, line.substring(13));
+      } else {
+        // for old wavefront clusters, no usage information is returned.
+        try {
+          parseMetric(false, line);
+        } catch (Throwable t) {
+          // ignored.
+        }
       }
+    } else {
+      String[] IdLine = line.split("\\s+");
+      if (isType(IdLine[0])) parseId(IdLine);
     }
   }
 
+  private boolean isType(String type) {
+    switch (type) {
+      case "HOST":
+      case "STRING":
+      case "HISTOGRAM":
+      case "SPAN":
+      case "METRIC":
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  private Type getType(String type) {
+    switch (type) {
+      case "HOST":
+        return Type.HOST;
+      case "STRING":
+        return Type.POINT_TAG;
+      case "HISTOGRAM":
+        return Type.HISTOGRAM;
+      case "SPAN":
+        return Type.SPAN;
+      case "METRIC":
+      default:
+        return Type.METRIC;
+    }
+  }
+
+  /**
+   * @param line Each line is Type, Id name, Id number.
+   */
+  private void parseId(String[] line) {
+    Type IdType = getType(line[0]);
+    if (listener != null) {
+      this.listener.onIdReceived(this, IdType, line[1]);
+    }
+  }
+
+  /**
+   * @param accessed Access status of a point.
+   * @param line     Each point is listed on a separate line.
+   */
   private void parseMetric(boolean accessed, String line) {
     ReportPoint drive = FORMAT.drive(line, null, null);
     if (listener != null) {
@@ -329,14 +433,42 @@ public class PointsSpy {
       } else {
         annotations = ImmutableMultimap.of();
       }
-      this.listener.onMetricReceived(this, accessed, drive.getMetric(), drive.getHost(), annotations,
-          drive.getTimestamp(), (Double) drive.getValue());
+      this.listener.onMetricReceived(this, accessed, drive.getMetric(), drive.getHost(),
+          annotations, drive.getTimestamp(), (Double) drive.getValue());
+    }
+  }
+
+  public void setTypePrefix(Type t) {
+    switch (t) {
+      case HOST:
+        this.typePrefix = "HOST";
+        break;
+      case POINT_TAG:
+        this.typePrefix = "STRING";
+        break;
+      case HISTOGRAM:
+        this.typePrefix = "HISTOGRAM";
+        break;
+      case SPAN:
+        this.typePrefix = "SPAN";
+        break;
+      case METRIC:
+      default:
+        this.typePrefix = "METRIC";
+        break;
     }
   }
 
   public interface Listener {
 
     void onBackendCountChanges(PointsSpy pointsSpy, int numBackends);
+
+    /**
+     * @param pointsSpy Spy on ID
+     * @param type      ID type parameter
+     * @param name      ID name parameter
+     */
+    void onIdReceived(PointsSpy pointsSpy, Type type, @Nullable String name);
 
     void onMetricReceived(PointsSpy pointsSpy, boolean accessed, String metric, String host,
                           Multimap<String, String> pointTags, long timestamp, double value);

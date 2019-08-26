@@ -24,7 +24,7 @@ public class NamespaceBuilderTest {
     @Test
     public void testAccept_noSeparators(){
         String metricString = "noSepMetricsString";
-        testNamespaceBuilder.accept(metricString, "hostname", metricString, 0, 0, false);
+        testNamespaceBuilder.accept(metricString, "hostname", metricString, 0, 0, false, true);
         assertEquals(1, testNamespaceBuilder.getRoot().getNodes().size());
         NamespaceNode tempNode = Iterables.getOnlyElement(testNamespaceBuilder.getRoot().getNodes().values());
         assertEquals(metricString, tempNode.getValue());
@@ -34,7 +34,7 @@ public class NamespaceBuilderTest {
     @Test
     public void testAccept_defaultSeparators(){
         String metricString = "Sep.Metrics.String";
-        testNamespaceBuilder.accept(metricString, "hostname", metricString, 0, 0, false);
+        testNamespaceBuilder.accept(metricString, "hostname", metricString, 0, 0, false, true);
         assertEquals(1, testNamespaceBuilder.getRoot().getNodes().size());
         assertTrue(testNamespaceBuilder.getRoot().getNodes().containsKey("Sep."));
         assertEquals(1, testNamespaceBuilder.getRoot().getNodes().get("Sep.").getNodes().size());
@@ -46,7 +46,7 @@ public class NamespaceBuilderTest {
     public void testAccept_configSeparators(){
         String metricString = "Sep$Metrics^String";
         testNamespaceBuilder.setSeparatorCharacters("$%^");
-        testNamespaceBuilder.accept(metricString, "hostname", metricString, 0, 0, false);
+        testNamespaceBuilder.accept(metricString, "hostname", metricString, 0, 0, false, true);
         assertTrue(testNamespaceBuilder.getRoot().getNodes().containsKey("Sep$"));
         assertTrue(testNamespaceBuilder.getRoot().getNodes().get("Sep$").getNodes().containsKey(("Metrics^")));
     }
@@ -55,8 +55,8 @@ public class NamespaceBuilderTest {
     public void testAccept_rootCount() {
         String string1 = "sldb.fake";
         String string2 = "telegraf.fake";
-        testNamespaceBuilder.accept(string1, "hostname", string1, 0, 0, false);
-        testNamespaceBuilder.accept(string2, "hostname", string2, 0, 0, false);
+        testNamespaceBuilder.accept(string1, "hostname", string1, 0, 0, false, true);
+        testNamespaceBuilder.accept(string2, "hostname", string2, 0, 0, false, true);
         assertEquals(2, testNamespaceBuilder.getRoot().getNodes().size());
         assertTrue(testNamespaceBuilder.getRoot().getNodes().containsKey("sldb."));
         assertTrue(testNamespaceBuilder.getRoot().getNodes().containsKey("telegraf."));
@@ -66,7 +66,7 @@ public class NamespaceBuilderTest {
     public void testAccept_childCount(){
         String rootStr = "sldb.";
         for (int i=0; i < 3; i++){
-            testNamespaceBuilder.accept(rootStr + i, "hostname",rootStr + i, 0, 0, false);
+            testNamespaceBuilder.accept(rootStr + i, "hostname",rootStr + i, 0, 0, false, true);
         }
         assertEquals(3, testNamespaceBuilder.getRoot().getNodes().get(rootStr).getNodes().size());
     }
@@ -92,11 +92,11 @@ public class NamespaceBuilderTest {
         String rootStr = "sldb.";
         testNamespaceBuilder.setMaxChildren(3);
         for (int i=0; i < 5; i++){
-            testNamespaceBuilder.accept(rootStr + i, "hostname", rootStr + i, 0, 0, false);
+            testNamespaceBuilder.accept(rootStr + i, "hostname", rootStr + i, 0, 0, false, true);
         }
-        testNamespaceBuilder.accept("s3.fake", "hostname", "s3.fake", 0, 0, false);
-        testNamespaceBuilder.accept("telegraf.fake", "hostname", "telegraf.fake", 0, 0, false);
-        testNamespaceBuilder.accept("query.fake", "hostname", "query.fake", 0, 0, false);
+        testNamespaceBuilder.accept("s3.fake", "hostname", "s3.fake", 0, 0, false, true);
+        testNamespaceBuilder.accept("telegraf.fake", "hostname", "telegraf.fake", 0, 0, false, true);
+        testNamespaceBuilder.accept("query.fake", "hostname", "query.fake", 0, 0, false, true);
         assertTrue(treeWithinChildLimit(testNamespaceBuilder.getRoot(), testNamespaceBuilder.getMaxChildren()));
     }
 
@@ -119,7 +119,7 @@ public class NamespaceBuilderTest {
     public void testAccept_depthLimitReached(){
         String nodeString = "sldb.test.to.exceed.limit";
         testNamespaceBuilder.setMaxDepth(3);
-        testNamespaceBuilder.accept(nodeString, "hostname", nodeString, 0, 0, false);
+        testNamespaceBuilder.accept(nodeString, "hostname", nodeString, 0, 0, false, true);
         assertTrue(calcTreeDepth(testNamespaceBuilder.getRoot())<= testNamespaceBuilder.getMaxDepth());
         assertEquals(3, calcTreeDepth(testNamespaceBuilder.getRoot()));
     }
@@ -127,9 +127,9 @@ public class NamespaceBuilderTest {
     @Test
     public void testGetFlattened(){
         String stringOne = "Flatten.String", stringTwo = "noFlat.string2", stringThree = "noFlat.string3";
-        testNamespaceBuilder.accept(stringOne, "hostname", stringOne, 0, 0, false);
-        testNamespaceBuilder.accept(stringTwo, "hostname", stringTwo, 0, 0, false);
-        testNamespaceBuilder.accept(stringThree, "hostname", stringThree, 0, 0, false);
+        testNamespaceBuilder.accept(stringOne, "hostname", stringOne, 0, 0, false, true);
+        testNamespaceBuilder.accept(stringTwo, "hostname", stringTwo, 0, 0, false, true);
+        testNamespaceBuilder.accept(stringThree, "hostname", stringThree, 0, 0, false, true);
         assertEquals(stringOne, testNamespaceBuilder.getRoot().getNodes().get("Flatten.").getFlattened());
         assertEquals("noFlat.", testNamespaceBuilder.getRoot().getNodes().get("noFlat.").getFlattened());
     }

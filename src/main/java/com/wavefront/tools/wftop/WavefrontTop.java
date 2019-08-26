@@ -27,7 +27,6 @@ import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
 public class WavefrontTop {
-
   private static final Logger log = Logger.getLogger("wftop");
 
   private final Timer timer = new Timer(true);
@@ -40,9 +39,16 @@ public class WavefrontTop {
    * What are we analyzing (metric names? hosts? point tags?)
    */
   private Dimension analysisDimension = Dimension.METRIC;
-  private PointsNamespacePanel pointsNamespacePanel;
-  private boolean groupByIngestionSource = false;
+  private Type IDType = Type.METRIC;
   private RootNode root = new RootNode("root");
+  private boolean groupByIngestionSource = false;
+  private boolean spyOnPoint = true;
+  /**
+   * Change Panel when spying on Point or Id.
+   */
+  private NamespacePanel namespacePanel;
+  private AtomicBoolean exit;
+  private BasicWindow pointsSpyWindow;
 
   @Parameter(names = "--log", description = "Log to console")
   private boolean logToConsole = false;
@@ -80,10 +86,14 @@ public class WavefrontTop {
       screen.setCursorPosition(null);
       // Create gui and start gui
       MultiWindowTextGUI gui =
-          new MultiWindowTextGUI(screen, new DefaultWindowManager(), new EmptySpace(TextColor.ANSI.BLACK));
+        new MultiWindowTextGUI(screen, new DefaultWindowManager(),
+        new EmptySpace(TextColor.ANSI.BLACK));
       SpyConfigurationPanel spyConfigurationPanel = new SpyConfigurationPanel(gui);
-      pointsNamespacePanel = new PointsNamespacePanel(spyConfigurationPanel, gui);
+      PointsNamespacePanel pointsNamespacePanel = new PointsNamespacePanel(spyConfigurationPanel, gui);
+      IdNamespacePanel idNamespacePanel = new IdNamespacePanel(spyConfigurationPanel, gui);
+      namespacePanel = pointsNamespacePanel;
 
+      //default SPY on data points, can SPY on newly created IDs
       spyConfigurationPanel.setSamplingRate(pointsSpy.getSamplingRate());
       spyConfigurationPanel.setUsageDaysThreshold(pointsSpy.getUsageDaysThreshold());
 
@@ -91,7 +101,10 @@ public class WavefrontTop {
       spyConfigurationPanel.setMaxDepth(root.getMaxDepth());
       spyConfigurationPanel.setMaxChildren(root.getMaxChildren());
 
+      spyConfigurationPanel.startParameters(this.spyOnPoint);
       spyConfigurationPanel.setListener(panel -> {
+        this.spyOnPoint = panel.getSpyOnPoint();
+        pointsSpy.setSpyOn(panel.getSpyOnPoint());
         pointsSpy.setSamplingRate(panel.getSamplingRate());
         pointsSpy.setUsageDaysThreshold(panel.getUsageThresholdDays());
 
@@ -99,10 +112,18 @@ public class WavefrontTop {
         root.setMaxDepth(panel.getMaxDepth());
         root.setMaxChildren(panel.getMaxChildren());
 
-        analysisDimension = panel.getDimension();
-        groupByIngestionSource = panel.getIngestionSource();
+        if (spyOnPoint) {
+          analysisDimension = panel.getDimension();
+          groupByIngestionSource = panel.getIngestionSource();
+        } else {
+          groupByIngestionSource = false;
+          IDType = panel.getType();
+          pointsSpy.setTypePrefix(IDType);
+        }
         pointsSpy.start();
         reset();
+        namespacePanel = (spyOnPoint) ? pointsNamespacePanel : idNamespacePanel;
+        setNamespacePanel(exit, pointsSpyWindow);
       });
       pointsSpy.setListener(new PointsSpy.Listener() {
         @Override
@@ -112,23 +133,30 @@ public class WavefrontTop {
         }
 
         @Override
-        public void onMetricReceived(PointsSpy pointsSpy, boolean accessed, String metric, String host,
-                                     Multimap<String, String> pointTags, long timestamp, double value) {
-          root.accept(analysisDimension, groupByIngestionSource, accessed, metric, host, pointTags, timestamp, value);
+        public void onIdReceived(PointsSpy pointsSpy, Type type, String name) {
+          root.accept(name);
         }
 
         @Override
-        public void onConnectivityChanged(PointsSpy pointsSpy, boolean connected, @Nullable String message) {
+        public void onMetricReceived(PointsSpy pointsSpy, boolean accessed, String metric, String host,
+                                     Multimap<String, String> pointTags, long timestamp, double value) {
+          root.accept(analysisDimension, groupByIngestionSource, accessed, metric, host,
+            pointTags, timestamp, value);
+        }
+
+        @Override
+        public void onConnectivityChanged(PointsSpy pointsSpy, boolean connected,
+                                          @Nullable String message) {
           if (connected) {
-            pointsNamespacePanel.setConnected();
+            namespacePanel.setConnected();
           } else {
-            pointsNamespacePanel.setConnectionError(message);
+            namespacePanel.setConnectionError(message);
           }
         }
 
         @Override
         public void onConnecting(PointsSpy pointsSpy) {
-          pointsNamespacePanel.setConnecting();
+          namespacePanel.setConnecting();
         }
       });
       if (token != null && cluster != null) {
@@ -136,8 +164,14 @@ public class WavefrontTop {
       } else {
         if (collectClusterConfiguration(gui)) return;
       }
-      pointsSpy.setParameters(clusterConfigurationPanel.getClusterUrl(), clusterConfigurationPanel.getToken(),
-          null, null, null, 0.01, 7);
+      if (spyOnPoint) {
+        pointsSpy.setParameters(clusterConfigurationPanel.getClusterUrl(),
+            clusterConfigurationPanel.getToken(), null, null, null,
+            0.01, 7);
+      } else {
+        pointsSpy.setParameters(clusterConfigurationPanel.getClusterUrl(),
+            clusterConfigurationPanel.getToken(), null, null, 1);
+      }
       pointsSpy.start();
       breadCrumbs.add(root);
       // begin spying.
@@ -170,26 +204,28 @@ public class WavefrontTop {
     computePath();
   }
 
-  private void setupPointsNamespacePanelRefresh(MultiWindowTextGUI gui) {
+  private void setupNamespacePanelRefresh(MultiWindowTextGUI gui) {
     timer.scheduleAtFixedRate(new TimerTask() {
       @Override
       public void run() {
-        double samplingRate = pointsSpy.getSamplingRate();
-        pointsNamespacePanel.setGlobalPPS(Math.max(1, backendCount.get()) / samplingRate, root.getRate());
-        pointsNamespacePanel.setSamplingRate(samplingRate);
-        pointsNamespacePanel.setVisibleRows(gui.getScreen().getTerminalSize().getRows() - 10);
-        if (pointsSpy.isConnected()) {
-          refreshPointsNamespacePanel(samplingRate);
-        }
+      double samplingRate = pointsSpy.getSamplingRate();
+      namespacePanel.setGlobalPPS(Math.max(1, backendCount.get()) / samplingRate, root.getRate());
+      namespacePanel.setSamplingRate(samplingRate);
+      namespacePanel.setVisibleRows(gui.getScreen().getTerminalSize().getRows() - 10);
+      if (pointsSpy.isConnected()) {
+        refreshNamespacePanel(samplingRate);
+      }
       }
     }, 1000, 1000);
   }
 
-  private void refreshPointsNamespacePanel(double samplingRate) {
-    Node node = breadCrumbs.get(breadCrumbs.size() - 1);
-    pointsNamespacePanel.renderNodes(node, Math.max(1, backendCount.get()) / samplingRate,
-            node.getNodes().values());
-    computePath();
+  private void refreshNamespacePanel(double samplingRate) {
+    if (breadCrumbs.size() >= 1) {
+      Node node = breadCrumbs.get(breadCrumbs.size() - 1);
+      namespacePanel.renderNodes(node, Math.max(1, backendCount.get()) / samplingRate,
+          node.getNodes().values());
+      computePath();
+    }
   }
 
   private boolean collectClusterConfiguration(MultiWindowTextGUI gui) {
@@ -233,8 +269,8 @@ public class WavefrontTop {
     if (!lastKnownClusterConfig.exists() || lastKnownClusterConfig.canWrite()) {
       try {
         Files.write(
-            path,
-            ImmutableList.of(clusterConfigurationPanel.getClusterUrl(), clusterConfigurationPanel.getToken()));
+          path,
+          ImmutableList.of(clusterConfigurationPanel.getClusterUrl(), clusterConfigurationPanel.getToken()));
       } catch (IOException e) {
         log.log(Level.WARNING, "Cannot write .wftop_cluster", e);
       }
@@ -242,12 +278,9 @@ public class WavefrontTop {
     return false;
   }
 
-  private boolean spyPoints(MultiWindowTextGUI gui) {
-    AtomicBoolean exit = new AtomicBoolean(false);
-    BasicWindow pointsSpyWindow = new BasicWindow("Wavefront Top");
-    pointsSpyWindow.setHints(Collections.singletonList(Window.Hint.FULL_SCREEN));
-    pointsSpyWindow.setComponent(pointsNamespacePanel);
-    pointsNamespacePanel.setListener(new PointsNamespacePanel.Listener() {
+  private void setNamespacePanel(AtomicBoolean exit, BasicWindow pointsSpyWindow) {
+    pointsSpyWindow.setComponent(namespacePanel);
+    namespacePanel.setListener(new NamespacePanel.Listener() {
       @Override
       public void onExit() {
         exit.set(true);
@@ -265,22 +298,22 @@ public class WavefrontTop {
 
       @Override
       public void sortLeft() {
-        pointsNamespacePanel.setSortIndex(
-            Math.max(0, pointsNamespacePanel.getSortIndex() - 1));
-        refreshPointsNamespacePanel(pointsSpy.getSamplingRate());
+        namespacePanel.setSortIndex(
+            Math.max(0, namespacePanel.getSortIndex() - 1));
+        refreshNamespacePanel(pointsSpy.getSamplingRate());
       }
 
       @Override
       public void sortRight() {
-        pointsNamespacePanel.setSortIndex(
-            Math.min(8, pointsNamespacePanel.getSortIndex() + 1));
-        refreshPointsNamespacePanel(pointsSpy.getSamplingRate());
+        namespacePanel.setSortIndex(
+          Math.min(namespacePanel.getTableColumnCount() - 1, namespacePanel.getSortIndex() + 1));
+        refreshNamespacePanel(pointsSpy.getSamplingRate());
       }
 
       @Override
       public void reverseSort() {
-        pointsNamespacePanel.toggleSortOrder();
-        refreshPointsNamespacePanel(pointsSpy.getSamplingRate());
+        namespacePanel.toggleSortOrder();
+        refreshNamespacePanel(pointsSpy.getSamplingRate());
       }
 
       @Override
@@ -297,7 +330,7 @@ public class WavefrontTop {
           }
         }
         computePath();
-        refreshPointsNamespacePanel(pointsSpy.getSamplingRate());
+        refreshNamespacePanel(pointsSpy.getSamplingRate());
       }
 
       @Override
@@ -305,15 +338,22 @@ public class WavefrontTop {
         while (breadCrumbs.size() > 1) {
           if (breadCrumbs.size() == 2 && !groupByIngestionSource) break;
           breadCrumbs.remove(breadCrumbs.size() - 1);
-          if (breadCrumbs.get(breadCrumbs.size() - 1).getNodes().size() != 1){
+          if (breadCrumbs.get(breadCrumbs.size() - 1).getNodes().size() != 1) {
             break;
           }
         }
         computePath();
-        refreshPointsNamespacePanel(pointsSpy.getSamplingRate());
+        refreshNamespacePanel(pointsSpy.getSamplingRate());
       }
     });
-    setupPointsNamespacePanelRefresh(gui);
+  }
+
+  private boolean spyPoints(MultiWindowTextGUI gui) {
+    exit = new AtomicBoolean(false);
+    pointsSpyWindow = new BasicWindow("Wavefront Top");
+    pointsSpyWindow.setHints(Collections.singletonList(Window.Hint.FULL_SCREEN));
+    setNamespacePanel(exit, pointsSpyWindow);
+    setupNamespacePanelRefresh(gui);
     gui.addWindowAndWait(pointsSpyWindow);
     return exit.get();
   }
@@ -323,17 +363,16 @@ public class WavefrontTop {
    */
   private void computePath() {
     StringBuilder path = new StringBuilder();
-      if (groupByIngestionSource) {
-          path.append("GROUP BY SOURCE: ");
-          if(breadCrumbs.size() >= 2) {
-            path.append(breadCrumbs.get(1).getValue()).append("\n> ").append(analysisDimension).append(": ");
-          }
+    if (groupByIngestionSource) {
+      path.append("GROUP BY SOURCE: ");
+      if (breadCrumbs.size() >= 2) {
+        path.append(breadCrumbs.get(1).getValue()).append("\n> ").append(analysisDimension).append(": ");
       }
-      else path.append(analysisDimension).append(": ");
+    } else path.append((spyOnPoint) ? analysisDimension : IDType).append(": ");
     boolean limited = false;
-    for (int i = 0; i < breadCrumbs.size(); i++){
-        limited |= breadCrumbs.get(i).isLimited();
-        if (i >= 2) path.append(breadCrumbs.get(i).getValue());
+    for (int i = 0; i < breadCrumbs.size(); i++) {
+      limited |= breadCrumbs.get(i).isLimited();
+      if (i >= 2) path.append(breadCrumbs.get(i).getValue());
     }
     if (limited) {
       path.append(" [EXPANSION HALTED (PER CONFIG)]");
@@ -341,6 +380,6 @@ public class WavefrontTop {
     if (backendCount.get() == 0) {
       path.append(" [PPS and %ACCESSED IS NOT AVAILABLE/ACCURATE]");
     }
-    pointsNamespacePanel.setPath(path.toString(), limited || backendCount.get() == 0);
+    namespacePanel.setPath(path.toString(), limited || backendCount.get() == 0);
   }
 }
