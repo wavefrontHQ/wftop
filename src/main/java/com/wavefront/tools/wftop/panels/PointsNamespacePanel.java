@@ -27,18 +27,18 @@ public class PointsNamespacePanel extends NamespacePanel {
       } else if (sortIndex == 2) {
         // % accessed
         return Double.compare((double) o1.getAccessed() / o1.getRate().getCount(),
-                (double) o2.getAccessed() / o2.getRate().getCount());
+            (double) o2.getAccessed() / o2.getRate().getCount());
       } else if (sortIndex == 3) {
         // median lag
         return Double.compare(o1.getLag().getSnapshot().getMedian(), o2.getLag().getSnapshot().getMedian());
       } else if (sortIndex == 4) {
         // p75 lag
         return Double.compare(o1.getLag().getSnapshot().get75thPercentile(),
-                o2.getLag().getSnapshot().get75thPercentile());
+            o2.getLag().getSnapshot().get75thPercentile());
       } else if (sortIndex == 5) {
         // p99 lag
         return Double.compare(o1.getLag().getSnapshot().get99thPercentile(),
-                o2.getLag().getSnapshot().get99thPercentile());
+            o2.getLag().getSnapshot().get99thPercentile());
       } else if (sortIndex == 6) {
         // metric cardinality
         return Long.compare(o1.getEstimatedMetricCardinality(), o2.getEstimatedMetricCardinality());
@@ -84,38 +84,38 @@ public class PointsNamespacePanel extends NamespacePanel {
   @Override
   protected void addNodes(Node root, double factor, Collection<Node> nodes, Snapshot snapshot, String selectedLabel) {
     Ordering<Node> ordering = Ordering.from(getComparator());
-      if (reverseSort) ordering = ordering.reverse();
-      List<Node> sorted = ordering.sortedCopy(nodes);
-      int num = 0;
-      int newLocation = 0;
-      for (Node node : sorted) {
-        snapshot = node.getLag().getSnapshot();
-        String flattened = StringUtils.abbreviate(node.getFlattened(), 50);
-        if (flattened.equals(selectedLabel)) {
-          newLocation = num + 1;
-        }
-        labelToNodeMap.put(flattened, node);
-        table.getTableModel().addRow(flattened,
-            (Math.round(factor * node.getRate().getOneMinuteRate()) + "pps"),
-            (Math.round(100.0 * node.getAccessed() / node.getRate().getCount()) + "%"),
-            Math.round(snapshot.getMedian()) + "ms",
-            Math.round(snapshot.get75thPercentile()) + "ms",
-            Math.round(snapshot.get99thPercentile()) + "ms",
-            String.valueOf(node.getEstimatedMetricCardinality()),
-            String.valueOf(node.getEstimatedHostCardinality()),
-            String.valueOf(node.getRange()));
-        num++;
-        if (num > 1000) break;
+    if (reverseSort) ordering = ordering.reverse();
+    List<Node> sorted = ordering.sortedCopy(nodes);
+    int num = 0;
+    int newLocation = 0;
+    for (Node node : sorted) {
+      snapshot = node.getLag().getSnapshot();
+      String flattened = StringUtils.abbreviate(node.getFlattened(), 50);
+      if (flattened.equals(selectedLabel)) {
+        newLocation = num + 1;
       }
-      table.setSelectedRow(newLocation);
+      labelToNodeMap.put(flattened, node);
+      table.getTableModel().addRow(flattened,
+          (Math.round(factor * node.getRate().getOneMinuteRate()) + "pps"),
+          (Math.round(100.0 * node.getAccessed() / node.getRate().getCount()) + "%"),
+          Math.round(snapshot.getMedian()) + "ms",
+          Math.round(snapshot.get75thPercentile()) + "ms",
+          Math.round(snapshot.get99thPercentile()) + "ms",
+          String.valueOf(node.getEstimatedMetricCardinality()),
+          String.valueOf(node.getEstimatedHostCardinality()),
+          String.valueOf(node.getRange()));
+      num++;
+      if (num > 1000) break;
+    }
+    table.setSelectedRow(newLocation);
   }
 
   @Override
   public void setGlobalPPS(double factor, Meter rate) {
     this.globalPPS.setText("Est. PPS: 1m " +
-            Math.round(factor * rate.getOneMinuteRate()) + "pps | 5m " +
-            Math.round(factor * rate.getFiveMinuteRate()) + "pps | 15m " +
-            Math.round(factor * rate.getFifteenMinuteRate()) + "pps");
+        Math.round(factor * rate.getOneMinuteRate()) + "pps | 5m " +
+        Math.round(factor * rate.getFiveMinuteRate()) + "pps | 15m " +
+        Math.round(factor * rate.getFifteenMinuteRate()) + "pps");
   }
 
 }

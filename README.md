@@ -31,7 +31,7 @@ UI to browse top-level metric namespaces (delimiters are configurable and can be
 
 ![Setup Screen](https://raw.githubusercontent.com/wavefronthq/wftop/master/screenshots/BrowseScreen.png)
 
-SelectinYg a "folder" allows the user to drilldown into a single metric namespace.
+Selecting a "folder" allows the user to drilldown into a single metric namespace.
 
 ![Setup Screen](https://raw.githubusercontent.com/wavefronthq/wftop/master/screenshots/DrillDown.png)
 

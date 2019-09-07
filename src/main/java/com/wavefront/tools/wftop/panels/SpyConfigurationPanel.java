@@ -23,7 +23,7 @@ public class SpyConfigurationPanel extends BasicWindow {
   private final TextBox maxChildrenTB;
   private final Label groupLabel = new Label("Group By: ");
   private final Label analysisLabel = new Label("Analysis Dimension:");
-  private final Label typeLabel =  new Label("Type: ");
+  private final Label typeLabel = new Label("Type: ");
   private final Label rateLabel = new Label("Sampling Rate (0 < r <= 0.05): ");
 
   private RadioBoxList<String> spyRadioBL = new RadioBoxList<>(new TerminalSize(20, 2));
@@ -60,9 +60,9 @@ public class SpyConfigurationPanel extends BasicWindow {
     spyRadioBL.addItem("Id Creations");
     spyRadioBL.setCheckedItemIndex(0);
     spyRadioBL.addListener((int selectedIndex, int previousSelection) -> {
-      if (selectedIndex == 0){
+      if (selectedIndex == 0) {
         setSpyOnPoint(form);
-      } else if (selectedIndex == 1){
+      } else if (selectedIndex == 1) {
         setSpyOnID(form);
       }
     });
@@ -144,10 +144,10 @@ public class SpyConfigurationPanel extends BasicWindow {
           new MessageDialogBuilder().setText("Invalid sample rate, must be > 0 and <= 1").setTitle("Invalid Input").
               build().showDialog(gui);
           return;
-        } else if (spyOnPoint && rate > 0.05){
-            new MessageDialogBuilder().setText("Invalid sample rate, must be > 0 and <= 0.05").
-                    setTitle("Invalid Input").build().showDialog(gui);
-            return;
+        } else if (spyOnPoint && rate > 0.05) {
+          new MessageDialogBuilder().setText("Invalid sample rate, must be > 0 and <= 0.05").
+              setTitle("Invalid Input").build().showDialog(gui);
+          return;
         }
         int usageDaysThreshold;
         try {
@@ -196,7 +196,7 @@ public class SpyConfigurationPanel extends BasicWindow {
     this.setComponent(contents);
   }
 
-  private void setSpyOnPoint(Panel form){
+  private void setSpyOnPoint(Panel form) {
     usageDaysThresholdTB.setReadOnly(false);
     form.removeComponent(typeLabel);
     form.removeComponent(typeRadioBL);
@@ -210,7 +210,7 @@ public class SpyConfigurationPanel extends BasicWindow {
     rateLabel.setText("Sampling Rate (0 < r <= 0.05): ");
   }
 
-  private void setSpyOnID(Panel form){
+  private void setSpyOnID(Panel form) {
     usageDaysThresholdTB.setText("7").setReadOnly(true);
     form.removeComponent(groupLabel);
     form.removeComponent(ingestionRadioBL);
@@ -228,7 +228,7 @@ public class SpyConfigurationPanel extends BasicWindow {
   }
 
   public void startParameters(boolean startOnPoint) {
-    if (startOnPoint){
+    if (startOnPoint) {
       dimensionOrTypeIndex = dimensionRadioBL.getCheckedItemIndex();
       startOnGroupBy = (ingestionRadioBL.getCheckedItemIndex() == 1);
     } else {
@@ -252,7 +252,7 @@ public class SpyConfigurationPanel extends BasicWindow {
     setMaxDepth(startMaxDepth);
     setMaxChildren(startMaxChildren);
     spyRadioBL.setCheckedItemIndex((startOnPoint) ? 0 : 1);
-    if (startOnPoint){
+    if (startOnPoint) {
       //Started on Point but currently was on ID screen
       if (!form.containsComponent(dimensionRadioBL)) {
         form.addComponent(analysisLabel);
@@ -263,14 +263,14 @@ public class SpyConfigurationPanel extends BasicWindow {
         form.addComponent(ingestionRadioBL);
         ingestionRadioBL.setCheckedItemIndex((startOnGroupBy) ? 1 : 0);
       } else {
-        if (dimensionRadioBL.getCheckedItemIndex() != dimensionOrTypeIndex){
+        if (dimensionRadioBL.getCheckedItemIndex() != dimensionOrTypeIndex) {
           dimensionRadioBL.setCheckedItemIndex(dimensionOrTypeIndex);
         }
         ingestionRadioBL.setCheckedItemIndex((startOnGroupBy) ? 1 : 0);
       }
     }
     //Started on ID but currently on Point Screen
-    else if (!form.containsComponent(typeRadioBL)){
+    else if (!form.containsComponent(typeRadioBL)) {
       form.addComponent(typeLabel);
       form.addComponent(typeRadioBL);
       typeRadioBL.setCheckedItemIndex(dimensionOrTypeIndex);
@@ -314,7 +314,7 @@ public class SpyConfigurationPanel extends BasicWindow {
   }
 
   public Type getType() {
-    switch(typeRadioBL.getCheckedItem()){
+    switch (typeRadioBL.getCheckedItem()) {
       case "Host":
         return Type.HOST;
       case "Point Tag":
@@ -329,7 +329,7 @@ public class SpyConfigurationPanel extends BasicWindow {
     }
   }
 
-  public boolean getIngestionSource(){
+  public boolean getIngestionSource() {
     return ingestionRadioBL.getCheckedItem().equals("Wavefront Ingestion Source");
   }
 

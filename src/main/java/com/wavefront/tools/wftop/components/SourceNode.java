@@ -87,8 +87,7 @@ public class SourceNode implements Node<NamespaceNode> {
    * @param name Name of ID.
    */
   public void accept(String name) {
-    namespaceBuilder.accept(name, name, name, 0, 0,
-        false, false);
+    namespaceBuilder.accept(name, name, name, 0, 0, false, false);
   }
 
   /**
