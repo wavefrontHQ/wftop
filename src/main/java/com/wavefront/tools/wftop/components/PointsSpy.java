@@ -374,11 +374,11 @@ public class PointsSpy {
       }
     } else {
       String[] IdLine = line.split("\\s+");
-      if (isType(IdLine[0])) parseId(IdLine);
+      if (spyableType(IdLine[0])) parseId(IdLine);
     }
   }
 
-  private boolean isType(String type) {
+  private boolean spyableType(String type) {
     switch (type) {
       case "HOST":
       case "STRING":
@@ -438,6 +438,10 @@ public class PointsSpy {
     }
   }
 
+  /**
+   *  Sets Spy Url Prefix Type.
+   * @param t Given Id Type, set Url type prefix.
+   */
   public void setTypePrefix(Type t) {
     switch (t) {
       case HOST:
