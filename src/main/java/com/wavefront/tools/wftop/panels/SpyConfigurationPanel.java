@@ -177,7 +177,7 @@ public class SpyConfigurationPanel extends BasicWindow {
         }
         int maxChildren;
         try {
-          maxChildren = Integer.valueOf(maxDepthTB.getText());
+          maxChildren = Integer.valueOf(maxChildrenTB.getText());
         } catch (NumberFormatException ex) {
           new MessageDialogBuilder().setText("Invalid max children, must be an integer").setTitle("Invalid Input").
               build().showDialog(gui);
