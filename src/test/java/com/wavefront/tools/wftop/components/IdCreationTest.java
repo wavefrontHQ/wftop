@@ -2,14 +2,11 @@ package com.wavefront.tools.wftop.components;
 
 import java.util.Map;
 
-import com.google.common.collect.Iterables;
-
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.naming.Name;
-
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Test for when spying by Id Creation.

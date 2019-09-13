@@ -5,8 +5,14 @@ import com.codahale.metrics.Snapshot;
 import com.google.common.collect.Ordering;
 import com.googlecode.lanterna.gui2.*;
 import com.wavefront.tools.wftop.components.Node;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.lang.StringUtils;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 
 /**
@@ -69,7 +75,8 @@ public class PointsNamespacePanel extends NamespacePanel {
   }
 
   @Override
-  protected void addFirstRow(Node root, double factor, Collection<Node> nodes, Snapshot snapshot) {
+  protected void addFirstRow(Node root, double factor, Collection<Node> nodes, Snapshot snapshot,
+                             boolean takeSnapshot) {
     this.table.getTableModel().addRow("..", // artificial ".."
         (Math.round(factor * root.getRate().getOneMinuteRate()) + "pps"),
         (Math.round(100.0 * root.getAccessed() / root.getRate().getCount()) + "%"),
@@ -79,10 +86,12 @@ public class PointsNamespacePanel extends NamespacePanel {
         String.valueOf(root.getEstimatedMetricCardinality()),
         String.valueOf(root.getEstimatedHostCardinality()),
         String.valueOf(root.getRange()));
+    if (takeSnapshot) exportData(rootPath, root, factor, snapshot);
   }
 
   @Override
-  protected void addNodes(Node root, double factor, Collection<Node> nodes, Snapshot snapshot, String selectedLabel) {
+  protected void addNodes(Node root, double factor, Collection<Node> nodes, Snapshot snapshot,
+                          String selectedLabel, boolean takeSnapshot) {
     Ordering<Node> ordering = Ordering.from(getComparator());
     if (reverseSort) ordering = ordering.reverse();
     List<Node> sorted = ordering.sortedCopy(nodes);
@@ -104,6 +113,9 @@ public class PointsNamespacePanel extends NamespacePanel {
           String.valueOf(node.getEstimatedMetricCardinality()),
           String.valueOf(node.getEstimatedHostCardinality()),
           String.valueOf(node.getRange()));
+      if (takeSnapshot) {
+        exportData(flattened, node, factor, snapshot);
+      }
       num++;
       if (num > 1000) break;
     }
@@ -118,4 +130,32 @@ public class PointsNamespacePanel extends NamespacePanel {
         Math.round(factor * rate.getFifteenMinuteRate()) + "pps");
   }
 
+  @Override
+  public void setUpCSVWriter() {
+    try {
+      BufferedWriter bufferedWriter = Files.newBufferedWriter(Paths.get(exportFile));
+      csvPrinter = new CSVPrinter(bufferedWriter, CSVFormat.DEFAULT.withHeader(
+          "Namespace", "PPS", "% Acc.", "P50 Lag", "P75 Lag", "P99 Lag", "Num Metrics", "Num " +
+              "Hosts", "Range"));
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+
+  private void exportData(String namespace, Node node, double factor, Snapshot snapshot) {
+    try {
+      csvPrinter.printRecord(namespace,
+          Math.round(factor * node.getRate().getOneMinuteRate()) + "pps",
+          Math.round(100.0 * node.getAccessed() / node.getRate().getCount()) + "%",
+          Math.round(snapshot.getMedian()) + "ms",
+          Math.round(snapshot.get75thPercentile()) + "ms",
+          Math.round(snapshot.get99thPercentile()) + "ms",
+          String.valueOf(node.getEstimatedMetricCardinality()),
+          String.valueOf(node.getEstimatedHostCardinality()),
+          String.valueOf(node.getRange()));
+      csvPrinter.flush();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
 }

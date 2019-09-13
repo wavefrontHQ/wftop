@@ -439,7 +439,8 @@ public class PointsSpy {
   }
 
   /**
-   *  Sets Spy Url Prefix Type.
+   * Sets Spy Url Prefix Type.
+   *
    * @param t Given Id Type, set Url type prefix.
    */
   public void setTypePrefix(Type t) {

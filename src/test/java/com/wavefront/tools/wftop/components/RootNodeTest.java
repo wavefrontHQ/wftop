@@ -1,13 +1,9 @@
 package com.wavefront.tools.wftop.components;
 
 import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.Iterator;
-import java.util.Map;
 
 import static org.junit.Assert.*;
 

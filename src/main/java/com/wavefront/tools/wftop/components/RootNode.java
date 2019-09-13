@@ -24,6 +24,7 @@ public class RootNode implements Node<SourceNode> {
 
   public RootNode(String value) {
     this.value = value;
+    reset();
   }
 
   @Override

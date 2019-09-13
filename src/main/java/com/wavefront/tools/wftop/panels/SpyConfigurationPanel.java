@@ -219,7 +219,7 @@ public class SpyConfigurationPanel extends BasicWindow {
 
     form.addComponent(typeLabel);
     form.addComponent(typeRadioBL);
-    setSamplingRate(1);
+    setSamplingRate(0.01);
     rateLabel.setText("Sampling Rate (0 < r <= 1): ");
   }
 
@@ -333,6 +333,42 @@ public class SpyConfigurationPanel extends BasicWindow {
     return ingestionRadioBL.getCheckedItem().equals("Wavefront Ingestion Source");
   }
 
+  public void setSpyOn(boolean spyOnPoint) {
+    this.spyOnPoint = spyOnPoint;
+    this.spyRadioBL.setCheckedItemIndex((spyOnPoint) ? 0 : 1);
+  }
+
+  /**
+   * Check corresponding item based on spyOn and dimension.
+   */
+  public void setSpyDimension(boolean spyOnPoint, String dimension) {
+    switch (dimension) {
+      case "METRIC":
+        if (spyOnPoint) dimensionRadioBL.setCheckedItemIndex(0);
+        else typeRadioBL.setCheckedItemIndex(0);
+        break;
+      case "HOST":
+        if (spyOnPoint) dimensionRadioBL.setCheckedItemIndex(1);
+        else typeRadioBL.setCheckedItemIndex(1);
+        break;
+      case "POINT_TAG":
+        if (spyOnPoint) dimensionRadioBL.setCheckedItemIndex(2);
+        else typeRadioBL.setCheckedItemIndex(2);
+        break;
+      case "POINT_TAG_KEY":
+        dimensionRadioBL.setCheckedItemIndex(3);
+        break;
+      case "HISTOGRAM":
+        typeRadioBL.setCheckedItemIndex(3);
+        break;
+      case "SPAN":
+        typeRadioBL.setCheckedItemIndex(4);
+      default:
+        if (spyOnPoint) dimensionRadioBL.setCheckedItemIndex(0);
+        else typeRadioBL.setCheckedItemIndex(0);
+    }
+  }
+
   public void setSamplingRate(double rate) {
     this.samplingRateTB.setText(String.valueOf(rate));
   }
@@ -343,6 +379,10 @@ public class SpyConfigurationPanel extends BasicWindow {
 
   public void setUsageDaysThreshold(int days) {
     this.usageDaysThresholdTB.setText(String.valueOf(days));
+  }
+
+  public void setGroupBy() {
+    this.ingestionRadioBL.setCheckedItemIndex(1);
   }
 
   public void setMaxDepth(int depth) {

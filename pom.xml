@@ -31,6 +31,11 @@
             <version>4.1.2</version>
         </dependency>
         <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-csv</artifactId>
+            <version>1.5</version>
+        </dependency>
+        <dependency>
             <groupId>com.wavefront</groupId>
             <artifactId>java-lib</artifactId>
             <version>4.37</version>
