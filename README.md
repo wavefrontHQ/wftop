@@ -6,12 +6,13 @@ Wavefront Top (wftop) is an interactive tool for exploring the live metric inges
 
 ## Features
   * Slice real-time metrics, host names, point tag keys, point tags into namespaces ("folders")
+  * Discover new ID creations by specified type
   * Compute per namespace "pps" (for point tags, counting each occurrence)
   * Compute per namespace "% Accessed" (in the last X days, configurable)
   * Compute median, p75 and p99 lag for timestamps of each namespace (compared to wall-clock of the machine running wftop)
   * Group namespace by proxy or token ingestion source
   * Drill-down into each namespace via selection
-  * Customizable separators (defaults to ".", "-", "_")
+  * Customizable separators (defaults to ".", "-", "_", "=")
   * Multiple sort dimensions
   * Start/Stop support
   * Automatic reconnection on server disconnects or network faults
@@ -35,9 +36,15 @@ Selecting a "folder" allows the user to drilldown into a single metric namespace
 
 ![Setup Screen](https://raw.githubusercontent.com/wavefronthq/wftop/master/screenshots/DrillDown.png)
 
-Configuration screen to control group by metric ingestion source. Configure sample rate (typical Wavefront clusters allow up to 5% sampling, wftop will automatically scale all pps measurements based on this number and backend data distribution topologies). Separators (each) control how metrics are split up into "folders". Usage lookback (days) control when a metric is considered "used" (a value of 7 means the metric would be considered used if it was accessed in any of the last 7 days).
+Configuration screen when spying on points can toggle group by metric ingestion source. Configure sample rate (typical Wavefront clusters allow up to 5% sampling, wftop will automatically scale all pps measurements based on this number and backend data distribution topologies). Separators (each) control how metrics are split up into "folders". Usage lookback (days) control when a metric is considered "used" (a value of 7 means the metric would be considered used if it was accessed in any of the last 7 days).
 
-![Setup Screen](https://raw.githubusercontent.com/wavefronthq/wftop/master/screenshots/ConfigurationScreen.png)
+![Setup Screen](https://raw.githubusercontent.com/wavefronthq/wftop/master/screenshots/PointConfigurationScreen.png)
+
+Group by ingestion source displays token user or proxy host name of ingested points. Points after 2019-30.x are sent into Wavefront with a non-persisted tag. Source displayed as “None” indicates no source tag was sent with the point and source was be determined.
+
+Configuration screen when spying on ID creations can configure the type of id creations to display. Configurations (sampling rate, separators, tree depth and maximum children per node) are similar to spying on point. Usage lookback days does not exist when spying on ID creations.
+
+![Setup Screen](https://raw.githubusercontent.com/wavefronthq/wftop/master/screenshots/IdConfigurationScreen.png)
 
 ## Requirements
   * Java >= 1.8
@@ -45,7 +52,11 @@ Configuration screen to control group by metric ingestion source. Configure samp
   * Any Wavefront cluster >= 2019-18.8 (33.8)
     * Older Wavefront clusters will still work with wftop but pps and % Accessed information will not be accurate/available.
   * Group by sources
-    * Cluster >= 2019-30.x (36.x)
+    * Cluster >= 2019-30.x
+    * Older Wavefront cluster points do not have ingestion tag and will be placed under source "None".
+  * Spy on ID creations
+    * Cluster >= 2019.38.x
+    * Older Wavefront clusters will still display Id creations, but cps will not be accurate.
 
 ## Overview
   * Simply run ```mvn clean install -DskipTests```  to compile the tool
@@ -54,7 +65,7 @@ Configuration screen to control group by metric ingestion source. Configure samp
 ## To start developing
 
 ```
-$ git clone github.com/wavefronthq/wftop ${directory}
+$ git clone https://github.com/wavefrontHQ/wftop.git ${directory}
 $ cd ${directory}
 $ mvn clean install
 ```
