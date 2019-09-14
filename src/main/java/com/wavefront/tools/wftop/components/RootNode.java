@@ -134,7 +134,7 @@ public class RootNode implements Node<SourceNode> {
   }
 
   /**
-   * clears SourceNodes and adds default SourceNode "None".
+   * Clears SourceNodes and adds default SourceNode "None".
    */
   public void reset() {
     globalNode = new SourceNode("None");

@@ -16,7 +16,7 @@ import java.util.Map;
 public interface Node<T extends Node> {
 
   /**
-   * @return Name of metric
+   * @return Name of metric.
    */
   String getValue();
 
@@ -82,7 +82,7 @@ public interface Node<T extends Node> {
   double getRange();
 
   /**
-   * @return Map of current Node's children nodes
+   * @return Map of current Node's children nodes.
    */
   Map<String, T> getNodes();
 }

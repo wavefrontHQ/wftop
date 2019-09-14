@@ -49,7 +49,7 @@ Configuration screen when spying on ID creations can configure the type of id cr
 ## Requirements
   * Java >= 1.8
   * maven (to compile)
-  * Any Wavefront cluster >= 2019-18.8 (33.8)
+  * Any Wavefront cluster >= 2019-18.8
     * Older Wavefront clusters will still work with wftop but pps and % Accessed information will not be accurate/available.
   * Group by sources
     * Cluster >= 2019-30.x

@@ -124,6 +124,30 @@ public abstract class NamespacePanel extends Panel {
     this.addComponent(footer.setLayoutData(BorderLayout.Location.BOTTOM));
   }
 
+  /**
+   * Compares nodes based on columns.
+   * @return  Comparison value returned.
+   */
+  protected abstract Comparator<Node> getComparator();
+
+  /**
+   * Add first row (to go up a folder).
+   */
+  protected abstract void addFirstRow(Node root, double factor, Collection<Node> nodes, Snapshot snapshot);
+
+  /**
+   * Now sort and add the nodes for this folder.
+   */
+  protected abstract void addNodes(Node root, double factor, Collection<Node> nodes, Snapshot snapshot, String selectedLabel);
+
+  /**
+   * Display global Points per Second (spy on Points) or Creations per Second (spy on Id Creation)
+   *
+   * @param factor Multiply by backend count to accurately display pps/cps.
+   * @param rate   Used to get 1m, 5m, 15m intervals.
+   */
+  public abstract void setGlobalPPS(double factor, Meter rate);
+
   public void setListener(Listener listener) {
     this.listener = listener;
   }
@@ -157,8 +181,6 @@ public abstract class NamespacePanel extends Panel {
     this.table.setVisibleRows(count);
   }
 
-  protected abstract Comparator<Node> getComparator();
-
   public void renderNodes(Node root, double factor, Collection<Node> nodes) {
     synchronized (table) {
       @Nullable
@@ -178,28 +200,9 @@ public abstract class NamespacePanel extends Panel {
     }
   }
 
-  /**
-   * Add first row (to go up a folder).
-   */
-  protected abstract void addFirstRow(Node root, double factor, Collection<Node> nodes, Snapshot snapshot);
-
-  /**
-   * Now sort and add the nodes for this folder.
-   */
-  protected abstract void addNodes(Node root, double factor, Collection<Node> nodes, Snapshot snapshot, String selectedLabel);
-
-
   public void setSamplingRate(double rate) {
     this.samplingRate.setText("Sampling: " + (rate * 100) + "%");
   }
-
-  /**
-   * Display global Points per Second (spy on Points) or Creations per Second (spy on Id Creation)
-   *
-   * @param factor Multiply by backend count to accurately display pps/cps.
-   * @param rate   Used to get 1m, 5m, 15m intervals.
-   */
-  public abstract void setGlobalPPS(double factor, Meter rate);
 
   public void setConnecting() {
     connectivityStatus.setForegroundColor(TextColor.ANSI.BLUE);

@@ -374,11 +374,11 @@ public class PointsSpy {
       }
     } else {
       String[] IdLine = line.split("\\s+");
-      if (spyableType(IdLine[0])) parseId(IdLine);
+      if (isSpyableType(IdLine[0])) parseId(IdLine);
     }
   }
 
-  private boolean spyableType(String type) {
+  private boolean isSpyableType(String type) {
     switch (type) {
       case "HOST":
       case "STRING":
@@ -391,7 +391,7 @@ public class PointsSpy {
     }
   }
 
-  private Type getType(String type) {
+  private Type toType(String type) {
     switch (type) {
       case "HOST":
         return Type.HOST;
@@ -411,7 +411,7 @@ public class PointsSpy {
    * @param line Each line is Type, Id name, Id number.
    */
   private void parseId(String[] line) {
-    Type IdType = getType(line[0]);
+    Type IdType = toType(line[0]);
     if (listener != null) {
       this.listener.onIdReceived(this, IdType, line[1]);
     }

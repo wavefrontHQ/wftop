@@ -208,13 +208,13 @@ public class WavefrontTop {
     timer.scheduleAtFixedRate(new TimerTask() {
       @Override
       public void run() {
-      double samplingRate = pointsSpy.getSamplingRate();
-      namespacePanel.setGlobalPPS(Math.max(1, backendCount.get()) / samplingRate, root.getRate());
-      namespacePanel.setSamplingRate(samplingRate);
-      namespacePanel.setVisibleRows(gui.getScreen().getTerminalSize().getRows() - 10);
-      if (pointsSpy.isConnected()) {
-        refreshNamespacePanel(samplingRate);
-      }
+        double samplingRate = pointsSpy.getSamplingRate();
+        namespacePanel.setGlobalPPS(Math.max(1, backendCount.get()) / samplingRate, root.getRate());
+        namespacePanel.setSamplingRate(samplingRate);
+        namespacePanel.setVisibleRows(gui.getScreen().getTerminalSize().getRows() - 10);
+        if (pointsSpy.isConnected()) {
+          refreshNamespacePanel(samplingRate);
+        }
       }
     }, 1000, 1000);
   }
