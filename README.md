@@ -51,7 +51,7 @@ Configuration screen to control sample rate (typical Wavefront clusters allow up
 ## To start developing
 
 ```
-$ git clone github.com/wavefronthq/wftop ${directory}
+$ git clone https://github.com/wavefrontHQ/wftop.git ${directory}
 $ cd ${directory}
 $ mvn clean install
 ```
