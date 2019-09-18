@@ -10,6 +10,7 @@ Wavefront Top (wftop) is an interactive tool for exploring the live metric inges
   * Compute per namespace "pps" (for point tags, counting each occurrence)
   * Compute per namespace "% Accessed" (in the last X days, configurable)
   * Compute median, p75 and p99 lag for timestamps of each namespace (compared to wall-clock of the machine running wftop)
+  * Group namespace by proxy or token ingestion source
   * Drill-down into each namespace via selection
   * Customizable separators (defaults to ".", "-", "_", "=")
   * Multiple sort dimensions
@@ -17,6 +18,8 @@ Wavefront Top (wftop) is an interactive tool for exploring the live metric inges
   * Automatic reconnection on server disconnects or network faults
   * Console emulation (--emulator) for high-resolution rendering
   * Credentials storage on "user.home" location for fast start-up (also supports --token and --cluster arguments)
+  * Flags for quick spy configuration (-h, --help to view flag options)
+  * Export data to CSV file
 
 ## Screenshots
 
@@ -34,6 +37,10 @@ UI to browse top-level metric namespaces (delimiters are configurable and can be
 Selecting a "folder" allows the user to drilldown into a single metric namespace.
 
 ![Setup Screen](https://raw.githubusercontent.com/wavefronthq/wftop/master/screenshots/DrillDown.png)
+
+When exporting data, --export, -t {seconds}, and -f {file-name} must be specified. Configurations to spying cannot be made when in export mode, nor can connection be stopped and restarted. The timer at the top displays the passed seconds. Wftop automatically closes and exports data to the specified CSV file when time is up.
+
+![Setup Screen](https://raw.githubusercontent.com/wavefronthq/wftop/master/screenshots/ExportScreen.png)
 
 Configuration screen when spying on points can toggle group by metric ingestion source. Configure sample rate (typical Wavefront clusters allow up to 5% sampling, wftop will automatically scale all pps measurements based on this number and backend data distribution topologies). Separators (each) control how metrics are split up into "folders". Usage lookback (days) control when a metric is considered "used" (a value of 7 means the metric would be considered used if it was accessed in any of the last 7 days).
 
