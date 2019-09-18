@@ -260,7 +260,7 @@ public abstract class NamespacePanel extends Panel {
    */
   public void setRootPath(String path) {
     String[] temp = path.split("\\s+");
-    this.rootPath = (temp.length > 1) ? temp[temp.length - 1] : "..";
+    if (temp.length > 0) this.rootPath = temp[temp.length - 1];
   }
 
   @VisibleForTesting

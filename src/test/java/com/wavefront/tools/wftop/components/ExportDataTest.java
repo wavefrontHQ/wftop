@@ -36,7 +36,7 @@ public class ExportDataTest {
   @Test
   public void testSetRootPath() {
     namespacePanel.setRootPath("METRIC: ");
-    assertEquals("..", namespacePanel.getRootPath());
+    assertEquals("METRIC:", namespacePanel.getRootPath());
 
     namespacePanel.setRootPath("METRIC: this.path");
     assertEquals("this.path", namespacePanel.getRootPath());
@@ -70,7 +70,7 @@ public class ExportDataTest {
       assertTrue(hasCorrectPointHeader(row.split(",")));
       row = csvReader.readLine();
       String [] rowItems = row.split(",");
-      assertEquals("..", rowItems[0]);
+      assertEquals("METRIC:", rowItems[0]);
       for (int i = 0; i <= 4; i++) {
         row = csvReader.readLine();
         rowItems = row.split(",");
