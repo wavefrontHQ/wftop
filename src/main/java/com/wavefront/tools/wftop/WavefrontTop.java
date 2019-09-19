@@ -209,7 +209,7 @@ public class WavefrontTop {
       public void run() {
         double samplingRate = pointsSpy.getSamplingRate();
         namespacePanel.setGlobalPPS(Math.max(1, backendCount.get()) / samplingRate, root.getRate());
-        namespacePanel.setStopwatchTime(stopwatch.elapsed(TimeUnit.SECONDS));
+        namespacePanel.setStopwatchTime(exportTime - stopwatch.elapsed(TimeUnit.SECONDS));
         namespacePanel.setSamplingRate(samplingRate);
         namespacePanel.setVisibleRows(gui.getScreen().getTerminalSize().getRows() - 10);
         if (pointsSpy.isConnected()) {
@@ -534,6 +534,8 @@ public class WavefrontTop {
       }
       if (exportTime < 0) {
         exportError.append("length of timer must be greater than 0 seconds");
+      } else {
+        this.exportTime += 1;
       }
       if (exportError.length() > 0) {
         throw new ParameterException("To export data, " + exportError.toString());
