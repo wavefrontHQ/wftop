@@ -1,0 +1,1 @@
+cmd /c start jre\bin\javaw -jar wftop.jar
