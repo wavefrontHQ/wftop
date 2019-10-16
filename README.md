@@ -6,7 +6,7 @@ Wavefront Top (wftop) is an interactive tool for exploring the live metric inges
 
 ## Features
   * Slice real-time metrics, host names, point tag keys, point tags into namespaces ("folders")
-  * Discover new ID creations by specified type
+  * Compute per namespace "cps" (Creations per Second) of new IDs by specified type
   * Compute per namespace "pps" (for point tags, counting each occurrence)
   * Compute per namespace "% Accessed" (in the last X days, configurable)
   * Compute median, p75 and p99 lag for timestamps of each namespace (compared to wall-clock of the machine running wftop)
@@ -61,7 +61,7 @@ Configuration screen when spying on ID creations can configure the type of id cr
     * Cluster >= 2019-30.x
     * Older Wavefront cluster points do not have ingestion tag and will be placed under source "None".
   * Spy on ID creations
-    * Cluster >= 2019.38.x
+    * Cluster >= 2019-38.x
     * Older Wavefront clusters will still display Id creations, but cps will not be accurate.
 
 ## Overview
