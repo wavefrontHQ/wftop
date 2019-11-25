@@ -223,7 +223,7 @@ public abstract class NamespacePanel extends Panel {
       footer.removeComponent(stopStartBtn);
       header.addComponent(stopwatchTime.withBorder(Borders.singleLine()).
           setLayoutData(BorderLayout.Location.TOP));
-      this.exportFile = "./" + exportFile;
+      this.exportFile = exportFile;
       setUpCSVWriter();
     }
   }
