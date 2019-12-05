@@ -54,6 +54,22 @@ var
   cluster: String;
   token: String;
 
+// Allow user for next task if all required parameters are provided
+procedure ValidatePage;
+begin
+  WizardForm.NextButton.Enabled := (trim(Page.Values[0]) <> '') and (trim(Page.Values[1]) <> '');
+end;
+
+procedure EditChange(Sender: TObject);
+begin
+  ValidatePage;
+end;
+
+procedure PageActivate(Sender: TWizardPage);
+begin
+  ValidatePage;
+end;
+
 procedure InitializeWizard;
 begin
   { Create the page }
@@ -62,8 +78,11 @@ begin
     'This wizard will guide you through the installation of Wftop.',
     'Please enter the access credentials for the target cluster to interrogate:');
   { Add items (False means it's not a password edit) }
-  Page.Add('Cluster URL:', False);
+  Page.OnActivate := @PageActivate;
+  Page.Add('Cluster URL(Example: CLUSTER_NAME.wavefront.com):', False);
   Page.Add('API Token:', False);
+  Page.Edits[0].OnChange := @EditChange;
+  Page.Edits[1].OnChange := @EditChange;
 end;
 
 function NextButtonClick(CurPageID: Integer): Boolean;
@@ -72,8 +91,8 @@ begin
   begin
     { Process the page }
     { Read values into variables }
-    cluster := Page.Values[0];
-    token := Page.Values[1];
+    cluster := trim(Page.Values[0]);
+    token := trim(Page.Values[1]);
     SaveStringToFile(GetEnv('HOMEPATH')+'\.wftop_cluster', cluster+#13#10+token+#13#10, False);
   end;
 
