@@ -20,6 +20,7 @@ public class SpyConfigurationPanel extends BasicWindow {
   private final TextBox separatorCharactersTB;
   private final TextBox usageDaysThresholdTB;
   private final TextBox maxDepthTB;
+  private final TextBox topLevelDepthTB;
   private final TextBox maxChildrenTB;
   private final Label groupLabel = new Label("Group By: ");
   private final Label analysisLabel = new Label("Analysis Dimension:");
@@ -38,6 +39,7 @@ public class SpyConfigurationPanel extends BasicWindow {
   private String startSeparators;
   private int startUsageDays;
   private int startMaxDepth;
+  private int startTopLevelDepth;
   private int startMaxChildren;
   private boolean startOnPoint;
   private boolean spyOnPoint = true;
@@ -86,6 +88,11 @@ public class SpyConfigurationPanel extends BasicWindow {
     this.maxDepthTB = new TextBox(new TerminalSize(10, 1));
     this.maxDepthTB.setValidationPattern(Pattern.compile("[0-9]+"));
     form.addComponent(maxDepthTB);
+
+    form.addComponent(new Label("Top Level Folder Depth:"));
+    this.topLevelDepthTB = new TextBox(new TerminalSize(10, 1));
+    this.topLevelDepthTB.setValidationPattern(Pattern.compile("[0-9]+"));
+    form.addComponent(topLevelDepthTB);
 
     form.addComponent(new Label("Max Children Per Node:"));
     this.maxChildrenTB = new TextBox(new TerminalSize(10, 1));
@@ -175,6 +182,19 @@ public class SpyConfigurationPanel extends BasicWindow {
               setTitle("Invalid Input").build().showDialog(gui);
           return;
         }
+        int topLevelDepth;
+        try {
+          topLevelDepth = Integer.valueOf(topLevelDepthTB.getText());
+        } catch (NumberFormatException ex) {
+          new MessageDialogBuilder().setText("Invalid top-level folder depth, must be an integer").setTitle("Invalid Input").
+              build().showDialog(gui);
+          return;
+        }
+        if (topLevelDepth < 1 || topLevelDepth > maxDepth) {
+          new MessageDialogBuilder().setText("Invalid top-level folder depth, must be > 0 and < Max Tree Depth").
+              setTitle("Invalid Input").build().showDialog(gui);
+          return;
+        }
         int maxChildren;
         try {
           maxChildren = Integer.valueOf(maxChildrenTB.getText());
@@ -239,6 +259,7 @@ public class SpyConfigurationPanel extends BasicWindow {
     startSeparators = getSeparatorCharacters();
     startUsageDays = getUsageThresholdDays();
     startMaxDepth = getMaxDepth();
+    startTopLevelDepth = getTopLevelDepth();
     startMaxChildren = getMaxChildren();
   }
 
@@ -250,6 +271,7 @@ public class SpyConfigurationPanel extends BasicWindow {
     setSeparatorCharacters(startSeparators);
     setUsageDaysThreshold(startUsageDays);
     setMaxDepth(startMaxDepth);
+    setTopLevelDepth(startTopLevelDepth);
     setMaxChildren(startMaxChildren);
     spyRadioBL.setCheckedItemIndex((startOnPoint) ? 0 : 1);
     if (startOnPoint) {
@@ -294,6 +316,8 @@ public class SpyConfigurationPanel extends BasicWindow {
   public int getMaxDepth() {
     return Integer.parseInt(this.maxDepthTB.getText());
   }
+
+  public int getTopLevelDepth() { return Integer.parseInt(this.topLevelDepthTB.getText()); }
 
   public int getMaxChildren() {
     return Integer.parseInt(maxChildrenTB.getText());
@@ -388,6 +412,9 @@ public class SpyConfigurationPanel extends BasicWindow {
   public void setMaxDepth(int depth) {
     this.maxDepthTB.setText(String.valueOf(depth));
   }
+
+  public void setTopLevelDepth(int topLevelDepth) {
+    this.topLevelDepthTB.setText(String.valueOf(topLevelDepth)); }
 
   public void setMaxChildren(int maxChildren) {
     this.maxChildrenTB.setText(String.valueOf(maxChildren));

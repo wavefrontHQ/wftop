@@ -135,4 +135,15 @@ public class NamespaceBuilderTest {
     assertEquals(stringOne, testNamespaceBuilder.getRoot().getNodes().get("Flatten.").getFlattened());
     assertEquals("noFlat.", testNamespaceBuilder.getRoot().getNodes().get("noFlat.").getFlattened());
   }
+
+  @Test
+  public void testTopLevelFolderDepth1() {
+    String nodeString = "sldb.test.to.exceed.limit";
+    testNamespaceBuilder.setTopLevelDepth(3);
+    testNamespaceBuilder.accept(nodeString, "hostname", nodeString, 0, 0, false, true);
+    assertEquals(1, testNamespaceBuilder.getRoot().getNodes().size());
+    assertTrue(testNamespaceBuilder.getRoot().getNodes().containsKey("sldb.test.to."));
+    assertEquals(1, testNamespaceBuilder.getRoot().getNodes().get("sldb.test.to.").getNodes().size());
+    assertTrue(testNamespaceBuilder.getRoot().getNodes().get("sldb.test.to.").getNodes().containsKey("exceed."));
+  }
 }

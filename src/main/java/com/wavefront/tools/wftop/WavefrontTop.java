@@ -100,6 +100,9 @@ public class WavefrontTop {
   @Parameter(names = {"-dep", "-depth"}, description = "Maximum depth")
   private int depthArg = 10;
 
+  @Parameter(names = {"-top", "-top-level"}, description = "Top-level folder depth")
+  private int topLevelArg = 1;
+
   @Parameter(names = {"-c", "-children"}, description = "Maximum child per node")
   private int maxChildrenArg = 1000;
 
@@ -157,6 +160,7 @@ public class WavefrontTop {
 
       root.setSeparatorCharacters(separatorsArg);
       root.setMaxDepth(depthArg);
+      root.setTopLevelDepth(topLevelArg);
       root.setMaxChildren(maxChildrenArg);
       groupByIngestionSource = spyOnPoint && groupByArg;
       if (spyOnPoint) analysisDimension = getPointDimension(dimenArg);
@@ -348,9 +352,11 @@ public class WavefrontTop {
 
     spyConfigurationPanel.setSamplingRate(rateArg);
     spyConfigurationPanel.setUsageDaysThreshold(usageDaysArg);
+    spyConfigurationPanel.setGroupBy();
 
     spyConfigurationPanel.setSeparatorCharacters(root.getSeparatorCharacters());
     spyConfigurationPanel.setMaxDepth(root.getMaxDepth());
+    spyConfigurationPanel.setTopLevelDepth(root.getTopLevelDepth());
     spyConfigurationPanel.setMaxChildren(root.getMaxChildren());
 
     spyConfigurationPanel.startParameters(this.spyOnPoint);
@@ -362,6 +368,7 @@ public class WavefrontTop {
 
       root.setSeparatorCharacters(panel.getSeparatorCharacters());
       root.setMaxDepth(panel.getMaxDepth());
+      root.setTopLevelDepth(panel.getTopLevelDepth());
       root.setMaxChildren(panel.getMaxChildren());
 
       if (spyOnPoint) {
@@ -514,6 +521,9 @@ public class WavefrontTop {
     }
     if (depthArg < 1) {
       throw new ParameterException("Invalid max depth, must be > 0");
+    }
+    if (topLevelArg < 1 || topLevelArg > depthArg) {
+      throw new ParameterException("Invalid max depth, must be > 0 and < max depth");
     }
     if (maxChildrenArg < 1) {
       throw new ParameterException("Invalid max children, must be > 0");

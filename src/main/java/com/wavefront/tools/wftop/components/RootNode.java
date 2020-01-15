@@ -20,6 +20,7 @@ public class RootNode implements Node<SourceNode> {
   private SourceNode globalNode = new SourceNode("None");
   private String separators = ".-_=";
   private int depthLimit = 10;
+  private int topLevelDepth = 1;
   private int branchLimit = 1000;
 
   public RootNode(String value) {
@@ -145,10 +146,15 @@ public class RootNode implements Node<SourceNode> {
     setSeparatorCharacters(separators);
     setMaxDepth(depthLimit);
     setMaxChildren(branchLimit);
+    setTopLevelDepth(topLevelDepth);
   }
 
   public int getMaxDepth() {
     return depthLimit;
+  }
+
+  public int getTopLevelDepth() {
+    return topLevelDepth;
   }
 
   public int getMaxChildren() {
@@ -178,6 +184,12 @@ public class RootNode implements Node<SourceNode> {
         v.setMaxDepth(this.depthLimit));
   }
 
+  public void setTopLevelDepth(int topLevelDepth) {
+    this.topLevelDepth = topLevelDepth;
+    this.getNodes().forEach((k, v) ->
+        v.setTopLevelDepth(this.topLevelDepth));
+  }
+
   public void setMaxChildren(int maxChildren) {
     this.branchLimit = maxChildren;
     this.getNodes().forEach((k, v) ->
@@ -189,5 +201,6 @@ public class RootNode implements Node<SourceNode> {
     ingestionSource.get(source_value).setSeparatorCharacters(this.separators);
     ingestionSource.get(source_value).setMaxDepth(this.depthLimit);
     ingestionSource.get(source_value).setMaxChildren(this.branchLimit);
+    ingestionSource.get(source_value).setTopLevelDepth(this.topLevelDepth);
   }
 }
