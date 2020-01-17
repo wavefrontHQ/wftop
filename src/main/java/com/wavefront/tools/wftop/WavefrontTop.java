@@ -352,7 +352,6 @@ public class WavefrontTop {
 
     spyConfigurationPanel.setSamplingRate(rateArg);
     spyConfigurationPanel.setUsageDaysThreshold(usageDaysArg);
-    spyConfigurationPanel.setGroupBy();
 
     spyConfigurationPanel.setSeparatorCharacters(root.getSeparatorCharacters());
     spyConfigurationPanel.setMaxDepth(root.getMaxDepth());

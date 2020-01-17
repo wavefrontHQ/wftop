@@ -186,7 +186,8 @@ public class SpyConfigurationPanel extends BasicWindow {
         try {
           topLevelDepth = Integer.valueOf(topLevelDepthTB.getText());
         } catch (NumberFormatException ex) {
-          new MessageDialogBuilder().setText("Invalid top-level folder depth, must be an integer").setTitle("Invalid Input").
+          new MessageDialogBuilder().setText("Invalid top-level folder depth, must be an integer").
+              setTitle("Invalid Input").
               build().showDialog(gui);
           return;
         }
