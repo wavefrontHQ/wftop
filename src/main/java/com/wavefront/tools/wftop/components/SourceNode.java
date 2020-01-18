@@ -132,6 +132,10 @@ public class SourceNode implements Node<NamespaceNode> {
     namespaceBuilder.setSeparatorCharacters(separators);
   }
 
+  public void setTopLevelDepth(int topLevelDepth) {
+    namespaceBuilder.setTopLevelDepth(topLevelDepth);
+  }
+
   public void setMaxDepth(int maxDepth) {
     namespaceBuilder.setMaxDepth(maxDepth);
   }

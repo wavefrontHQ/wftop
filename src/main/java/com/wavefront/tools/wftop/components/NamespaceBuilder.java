@@ -15,6 +15,7 @@ public class NamespaceBuilder {
   private String separators = ".-_=";
   private int depthLimit = 10;
   private int branchLimit = 1000;
+  private int topLevelDepth = 1;
 
   private NamespaceNode root = new NamespaceNode("");
 
@@ -33,6 +34,7 @@ public class NamespaceBuilder {
   public synchronized void accept(String input, @Nullable String host,
                                   @Nullable String metric, long timestamp, double value,
                                   boolean accessed, boolean spyOnPoint) {
+    int topLevel = topLevelDepth;
     MurmurHash3.LongPair longPair = new MurmurHash3.LongPair();
     long lag = 0;
     root.rate.mark();
@@ -52,7 +54,10 @@ public class NamespaceBuilder {
       boolean separator = false;
       for (int j = 0; j < separators.length(); j++) {
         if (c == separators.charAt(j)) {
-          separator = true;
+          topLevel -= 1;
+          if (topLevel <= 0) {
+            separator = true;
+          }
           break;
         }
       }
@@ -130,6 +135,10 @@ public class NamespaceBuilder {
 
   public void setMaxChildren(int maxChildren) {
     this.branchLimit = maxChildren;
+  }
+
+  public void setTopLevelDepth(int topLevelDepth) {
+    this.topLevelDepth = topLevelDepth;
   }
 
   private void updateCardinality(NamespaceNode node, String metric, String host,
