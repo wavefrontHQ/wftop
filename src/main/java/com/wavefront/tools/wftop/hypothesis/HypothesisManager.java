@@ -103,8 +103,8 @@ public class HypothesisManager {
         filter(h -> h.getAge() > 1).
         mapToDouble(Hypothesis::getInstaneousRate).summaryStatistics().
         getAverage();
-    long count = hypothesisList.stream().filter(h -> h.getAge() > 1 && h.getInstaneousRate() < average).count();
-    if (count < maxRecommendations) return;
+    long toRemove = hypothesisList.stream().filter(h -> h.getAge() > 1 && h.getInstaneousRate() < average).count();
+    if (hypothesisList.size() - toRemove < maxRecommendations) return;
     hypothesisList.removeIf(h -> h.getAge() > 1 && h.getInstaneousRate() < average);
   }
 
