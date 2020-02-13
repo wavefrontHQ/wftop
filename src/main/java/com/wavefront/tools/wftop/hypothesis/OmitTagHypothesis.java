@@ -1,20 +1,13 @@
 package com.wavefront.tools.wftop.hypothesis;
 
-import com.codahale.metrics.Meter;
 import com.google.common.collect.Multimap;
 
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicLong;
 
-public class OmitTagHypothesis implements Hypothesis {
+public class OmitTagHypothesis extends AbstractHypothesisImpl {
 
   private final String tagK;
   private final String tagV;
-
-  private Meter rate = new Meter();
-  private Meter instancenousRate = new Meter();
-  private final AtomicLong hits = new AtomicLong();
-  private final AtomicLong violations = new AtomicLong();
 
   public OmitTagHypothesis(String tagK, String tagV) {
     this.tagK = tagK;
@@ -22,28 +15,13 @@ public class OmitTagHypothesis implements Hypothesis {
   }
 
   @Override
-  public Hypothesis clone() {
+  public Hypothesis cloneHypothesis() {
     return new OmitTagHypothesis(tagK, tagV);
   }
 
   @Override
   public String getDescription() {
     return "Eliminate all metrics with the tag: \"" + tagK + "\"=\"" + tagV + "\"";
-  }
-
-  @Override
-  public double getRawPPSSavings() {
-    return rate.getFifteenMinuteRate();
-  }
-
-  @Override
-  public double getInstaneousRate() {
-    return instancenousRate.getMeanRate();
-  }
-
-  @Override
-  public double getViolationPercentage() {
-    return (double) violations.get() / hits.get();
   }
 
   @Override
@@ -59,11 +37,6 @@ public class OmitTagHypothesis implements Hypothesis {
       return true;
     }
     return false;
-  }
-
-  @Override
-  public void reset() {
-    instancenousRate = new Meter();
   }
 
   @Override

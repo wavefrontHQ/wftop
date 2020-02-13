@@ -2,6 +2,7 @@ package com.wavefront.tools.wftop.hypothesis;
 
 import com.google.common.collect.Multimap;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -38,8 +39,14 @@ public class HypothesisManager {
       droppedHypothesis.incrementAndGet();
       return false;
     }
-    hypothesisList.add(hypothesis.clone());
+    hypothesisList.add(hypothesis.cloneHypothesis());
     return true;
+  }
+
+  public void incrementAge() {
+    for (Hypothesis h : hypothesisList) {
+      h.incrementAge();
+    }
   }
 
   public void resetDroppedCounter() {
@@ -58,25 +65,35 @@ public class HypothesisManager {
     fullEvaluationMode.set(false);
   }
 
-  public void removeAllViolatingHypothesis() {
+  public List<Hypothesis> removeAllViolatingHypothesis(double upperBound) {
     synchronized (this) {
       for (Hypothesis h : hypothesisList) {
         if (h.getViolationPercentage() > confidence) {
           blacklistedHypothesis.add(h);
         }
       }
-      hypothesisList.removeIf(next -> next.getViolationPercentage() > confidence);
+      List<Hypothesis> toReturn = new ArrayList<>();
+      for (Hypothesis h : hypothesisList) {
+        if (h.getViolationPercentage() > confidence ||
+            h.getViolationPercentage() <= upperBound) {
+          toReturn.add(h);
+        }
+      }
+      hypothesisList.removeAll(toReturn);
       sortHypothesisByInstantaneousRate();
+      return toReturn;
     }
   }
 
   public void sortHypothesisByInstantaneousRate() {
-    while (true) {
-      try {
-        hypothesisList.sort((o1, o2) -> Double.compare(o2.getInstaneousRate(), o1.getInstaneousRate()));
-        return;
-      } catch (IllegalArgumentException ex) {
-        // just resort.
+    synchronized (this) {
+      while (true) {
+        try {
+          hypothesisList.sort((o1, o2) -> Double.compare(o2.getInstaneousRate(), o1.getInstaneousRate()));
+          return;
+        } catch (IllegalArgumentException ex) {
+          // just resort.
+        }
       }
     }
   }
@@ -88,18 +105,26 @@ public class HypothesisManager {
   }
 
   public boolean consumeReportPoint(boolean accessed, String metric, String host,
-                                    Multimap<String, String> pointTags, long timestamp, double value) {
+                                    Multimap<String, String> pointTags, long timestamp, double value, int depth) {
     if (fullEvaluationMode.get()) {
       boolean admitted = false;
+      int curr = 1;
       for (Hypothesis hypothesis : hypothesisList) {
-        admitted |= hypothesis.processReportPoint(accessed, metric, host, pointTags, timestamp, value);
+        if (curr > depth) {
+          hypothesis.processReportPoint(accessed, metric, host, pointTags, timestamp, value);
+        } else {
+          admitted |= hypothesis.processReportPoint(accessed, metric, host, pointTags, timestamp, value);
+        }
+        curr++;
       }
       return admitted;
     } else {
+      int curr = 1;
       for (Hypothesis hypothesis : hypothesisList) {
         if (hypothesis.processReportPoint(accessed, metric, host, pointTags, timestamp, value)) {
-          return true;
+          return curr <= depth;
         }
+        curr++;
       }
       return false;
     }
@@ -111,6 +136,12 @@ public class HypothesisManager {
 
   public void resetInstantaneousRateForAllHypothesis() {
     hypothesisList.forEach(Hypothesis::reset);
+  }
+
+  public void addHypothesis(Hypothesis h) {
+    h.resetAge();
+    blacklistedHypothesis.remove(h);
+    hypothesisList.add(h);
   }
 }
 

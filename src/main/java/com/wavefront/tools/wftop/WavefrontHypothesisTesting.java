@@ -32,6 +32,9 @@ public class WavefrontHypothesisTesting {
   @Parameter(names = {"-m", "-minPPS"}, description = "Minimum PPS savings to consider")
   private double minimumPPS = 1000;
 
+  @Parameter(names = {"-recommendations"}, description = "Number of recommendations per tier")
+  private int recommendations = 25;
+
   public static void main(String[] args) {
     WavefrontHypothesisTesting hypothesisTesting = new WavefrontHypothesisTesting();
     JCommander jCommander = JCommander.newBuilder().addObject(hypothesisTesting).build();
@@ -49,7 +52,8 @@ public class WavefrontHypothesisTesting {
     PointsSpy spy = new PointsSpy();
     spy.setParameters(cluster, token, null, null, rateArg);
     AtomicInteger numBackends = new AtomicInteger(1);
-    TieredHypothesisManager tieredHypothesisManager = new TieredHypothesisManager(10000, spy, 0.02);
+    TieredHypothesisManager tieredHypothesisManager = new TieredHypothesisManager(10000, spy, recommendations,
+        0.001, 0.02, 0.05, 0.10, 0.20, 1.0);
     spy.setListener(new PointsSpy.Listener() {
       @Override
       public void onBackendCountChanges(PointsSpy pointsSpy, int backends) {

@@ -1,22 +1,15 @@
 package com.wavefront.tools.wftop.hypothesis;
 
-import com.codahale.metrics.Meter;
 import com.google.common.collect.Multimap;
 
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicLong;
 
-public class OmitExactMetricHypothesis implements Hypothesis {
+public class OmitExactMetricHypothesis extends AbstractHypothesisImpl {
 
   private final String metricName;
 
-  private Meter rate = new Meter();
-  private Meter instancenousRate = new Meter();
-  private final AtomicLong hits = new AtomicLong(1);
-  private final AtomicLong violations = new AtomicLong();
-
   @Override
-  public Hypothesis clone() {
+  public Hypothesis cloneHypothesis() {
     return new OmitExactMetricHypothesis(metricName);
   }
 
@@ -27,21 +20,6 @@ public class OmitExactMetricHypothesis implements Hypothesis {
   @Override
   public String getDescription() {
     return "Eliminate the metric: \"" + metricName + "\"";
-  }
-
-  @Override
-  public double getRawPPSSavings() {
-    return rate.getFifteenMinuteRate();
-  }
-
-  @Override
-  public double getInstaneousRate() {
-    return instancenousRate.getMeanRate();
-  }
-
-  @Override
-  public double getViolationPercentage() {
-    return (double) violations.get() / hits.get();
   }
 
   @Override
@@ -57,11 +35,6 @@ public class OmitExactMetricHypothesis implements Hypothesis {
       return true;
     }
     return false;
-  }
-
-  @Override
-  public void reset() {
-    instancenousRate = new Meter();
   }
 
   @Override

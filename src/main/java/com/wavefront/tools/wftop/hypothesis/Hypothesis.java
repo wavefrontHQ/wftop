@@ -14,7 +14,7 @@ public interface Hypothesis {
    */
   String getDescription();
 
-  Hypothesis clone();
+  Hypothesis cloneHypothesis();
 
   /**
    * @return The PPS savings of this hypothesis if enacted.
@@ -41,4 +41,10 @@ public interface Hypothesis {
                              Multimap<String, String> pointTags, long timestamp, double value);
 
   void reset();
+
+  int getAge();
+
+  void incrementAge();
+
+  void resetAge();
 }
