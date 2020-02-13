@@ -72,7 +72,7 @@ public class TieredHypothesisManager {
       previous = null;
       for (HypothesisManager hypothesisManager : managers) {
         bidirectionalProcessHypothesis(confidence, previous, toAdd, hypothesisManager);
-        hypothesisManager.trimLowPPSHypothesis();
+        hypothesisManager.trimLowPPSHypothesis(maxRecommendations);
         confidence = hypothesisManager.getConfidence();
         previous = hypothesisManager;
       }
