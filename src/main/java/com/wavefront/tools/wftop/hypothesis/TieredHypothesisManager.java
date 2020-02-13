@@ -23,9 +23,12 @@ public class TieredHypothesisManager {
   private final Cache<Hypothesis, Boolean> hypothesisDedupCache = Caffeine.newBuilder().
       expireAfterWrite(5, TimeUnit.MINUTES).build();
   private final AtomicBoolean ignore = new AtomicBoolean(true);
+  private final long generationTime;
 
-  public TieredHypothesisManager(int maxHypothesis, PointsSpy spy, int maxRecommendations, double... confidences) {
-    this.spy = spy;
+  public TieredHypothesisManager(int maxHypothesis, long generationTime, PointsSpy pointsSpy,
+                                 int maxRecommendations, double... confidences) {
+    this.generationTime = generationTime;
+    this.spy = pointsSpy;
     this.maxRecommendations = maxRecommendations;
     for (double confidence : confidences) {
       managers.add(new HypothesisManager(maxHypothesis, confidence));
@@ -52,7 +55,7 @@ public class TieredHypothesisManager {
         hypothesisManager.resetInstantaneousRateForAllHypothesis();
         hypothesisManager.resetDroppedCounter();
       }
-      Thread.sleep(60000);
+      Thread.sleep(generationTime);
       log.info("Begin ranked hypothesis testing");
       double confidence = -1;
       HypothesisManager previous = null;
@@ -66,7 +69,7 @@ public class TieredHypothesisManager {
         confidence = hypothesisManager.getConfidence();
         previous = hypothesisManager;
       }
-      Thread.sleep(60000);
+      Thread.sleep(generationTime);
       log.info("Trimming recommendations");
       confidence = -1;
       previous = null;
