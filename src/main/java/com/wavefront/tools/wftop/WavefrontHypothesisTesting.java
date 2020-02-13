@@ -78,19 +78,28 @@ public class WavefrontHypothesisTesting {
                 entry.getValue()));
           }
           tieredHypothesisManager.offerHypothesis(new OmitMetricAndTagHypothesis(metric, "source", host));
-          StringBuilder sb = new StringBuilder();
+          StringBuilder sourceSB = new StringBuilder();
+          for (int i = 0; i < host.length(); i++) {
+            char c = host.charAt(i);
+            sourceSB.append(c);
+            if (separatorsArg.contains(String.valueOf(c))) {
+              tieredHypothesisManager.offerHypothesis(new OmitHostPrefixAndMetricHypothesis(sourceSB.toString(),
+                  metric));
+            }
+          }
+          StringBuilder metricSB = new StringBuilder();
           for (int i = 0; i < metric.length(); i++) {
             char c = metric.charAt(i);
-            sb.append(c);
+            metricSB.append(c);
             if (separatorsArg.contains(String.valueOf(c))) {
-              tieredHypothesisManager.offerHypothesis(new OmitMetricPrefixHypothesis(sb.toString()));
+              tieredHypothesisManager.offerHypothesis(new OmitMetricPrefixHypothesis(metricSB.toString()));
               for (Map.Entry<String, String> entry : pointTags.entries()) {
                 if (entry.getKey().equals("_wavefront_source")) continue;
-                tieredHypothesisManager.offerHypothesis(new OmitMetricPrefixAndTagHypothesis(sb.toString(),
+                tieredHypothesisManager.offerHypothesis(new OmitMetricPrefixAndTagHypothesis(metricSB.toString(),
                     entry.getKey(),
                     entry.getValue()));
               }
-              tieredHypothesisManager.offerHypothesis(new OmitMetricPrefixAndTagHypothesis(sb.toString(),
+              tieredHypothesisManager.offerHypothesis(new OmitMetricPrefixAndTagHypothesis(metricSB.toString(),
                   "source", host));
             }
           }

@@ -99,9 +99,11 @@ public class HypothesisManager {
   }
 
   public void trimLowPPSHypothesis() {
-    double average = hypothesisList.stream().mapToDouble(Hypothesis::getInstaneousRate).summaryStatistics().
+    double average = hypothesisList.stream().
+        filter(h -> h.getAge() > 1).
+        mapToDouble(Hypothesis::getInstaneousRate).summaryStatistics().
         getAverage();
-    hypothesisList.removeIf(next -> next.getInstaneousRate() < average);
+    hypothesisList.removeIf(h -> h.getAge() > 1 && h.getInstaneousRate() < average);
   }
 
   public boolean consumeReportPoint(boolean accessed, String metric, String host,

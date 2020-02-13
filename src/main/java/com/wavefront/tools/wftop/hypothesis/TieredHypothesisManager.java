@@ -8,6 +8,7 @@ import com.wavefront.tools.wftop.components.PointsSpy;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -21,6 +22,7 @@ public class TieredHypothesisManager {
   private final int maxRecommendations;
   private final Cache<Hypothesis, Boolean> hypothesisDedupCache = Caffeine.newBuilder().
       expireAfterWrite(5, TimeUnit.MINUTES).build();
+  private final AtomicBoolean ignore = new AtomicBoolean(true);
 
   public TieredHypothesisManager(int maxHypothesis, PointsSpy spy, int maxRecommendations, double... confidences) {
     this.spy = spy;
@@ -37,6 +39,7 @@ public class TieredHypothesisManager {
     spy.start();
     log.info("Warming up for 10s");
     Thread.sleep(10000);
+    ignore.set(false);
     while (true) {
       if (!spy.isConnected()) {
         log.info("Exiting due to connectivity failure");
@@ -77,7 +80,7 @@ public class TieredHypothesisManager {
         if (hypothesisManager.getConfidence() >= 1.0) continue; // ignore the catch-all hypothesis.
         List<Hypothesis> results = hypothesisManager.getAllHypothesis();
         List<Hypothesis> candidates = results.stream().
-            filter(s -> s.getAge() > 2).
+            filter(s -> s.getAge() > 1).
             filter(s -> s.getPPSSavings(numBackends.get(), rateArg) > minimumPPS).
             sorted((o1, o2) -> Double.compare(o2.getRawPPSSavings(), o1.getRawPPSSavings())).
             limit(maxRecommendations).
@@ -94,7 +97,8 @@ public class TieredHypothesisManager {
           double hConfidence = 100.0 - 100 * hypothesis.getViolationPercentage();
           double hSavings = hypothesis.getPPSSavings(numBackends.get(), rateArg);
           System.out.println("Action " + index + ": " + hypothesis.getDescription() +
-              " (Savings: " + hSavings + "pps / Confidence: " + hConfidence + "%)");
+              " (Savings: " + hSavings + "pps / Confidence: " + hConfidence +
+              "% / Generation: " + hypothesis.getAge() + ")");
           index++;
         }
       }
@@ -125,6 +129,7 @@ public class TieredHypothesisManager {
 
   public void consumeReportPoint(boolean accessed, String metric, String host, Multimap<String, String> pointTags,
                                  long timestamp, double value) {
+    if (ignore.get()) return;
     for (HypothesisManager hm : managers) {
       if (hm.consumeReportPoint(accessed, metric, host, pointTags, timestamp, value, maxRecommendations)) {
         break;
@@ -133,6 +138,7 @@ public class TieredHypothesisManager {
   }
 
   public void offerHypothesis(Hypothesis hypothesis) {
+    if (ignore.get()) return;
     if (hypothesisDedupCache.getIfPresent(hypothesis) != null) {
       return;
     }
