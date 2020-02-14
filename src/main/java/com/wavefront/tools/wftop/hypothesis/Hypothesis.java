@@ -19,10 +19,10 @@ public interface Hypothesis {
   /**
    * @return The PPS savings of this hypothesis if enacted.
    */
-  double getRawPPSSavings();
+  double getRawPPSSavings(boolean lifetime);
 
-  default double getPPSSavings(int numBackends, double sampleRate) {
-    return getRawPPSSavings() * numBackends / sampleRate;
+  default double getPPSSavings(boolean lifetime, int numBackends, double sampleRate) {
+    return getRawPPSSavings(lifetime) * numBackends / sampleRate;
   }
 
   double getInstaneousRate();

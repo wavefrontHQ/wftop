@@ -25,7 +25,6 @@ import org.apache.http.protocol.HttpContext;
 import wavefront.report.ReportPoint;
 
 import javax.annotation.Nullable;
-import java.io.IOException;
 import java.nio.CharBuffer;
 import java.util.*;
 import java.util.concurrent.Future;
@@ -97,7 +96,6 @@ public class PointsSpy {
   private boolean spyOnPoint = true;
 
   private Listener listener;
-  private StringBuilder curr = new StringBuilder();
 
   public PointsSpy() {
     this.httpAsyncClient = HttpAsyncClients.custom().
@@ -218,64 +216,66 @@ public class PointsSpy {
       HttpGet httpGet = new HttpGet(spyUrl);
       log.log(Level.INFO, "Starting spy request: " + spyUrl);
       httpGet.setHeader("Authorization", "Bearer " + token);
+      StringBuilder sb = new StringBuilder();
+      AsyncCharConsumer<Boolean> responseConsumer = new AsyncCharConsumer<Boolean>() {
+
+        @Override
+        protected void onResponseReceived(HttpResponse response) {
+          if (response.getStatusLine().getStatusCode() != 200) {
+            if (listener != null) {
+              listener.onConnectivityChanged(PointsSpy.this, false,
+                  response.getStatusLine().getStatusCode() + " " +
+                      response.getStatusLine().getReasonPhrase());
+            }
+          } else {
+            log.info("Spy request established");
+            if (!connected.getAndSet(true)) {
+              if (listener != null) {
+                listener.onConnectivityChanged(PointsSpy.this, true, null);
+              }
+            }
+          }
+        }
+
+        @Override
+        protected Boolean buildResult(HttpContext context) {
+          // we don't have a "result" per-say.
+          // if the stream ever finishes, we are no longer connected (the server enforces a time limit).
+          if (connected.getAndSet(false)) {
+            if (listener != null) {
+              listener.onConnectivityChanged(PointsSpy.this, false,
+                  "Stream Interrupted");
+            }
+          }
+          return null;
+        }
+
+        @Override
+        protected void onCharReceived(CharBuffer buf, IOControl ioctrl) {
+          while (buf.hasRemaining()) {
+            char c = buf.get();
+            if (c == '\n' || c == '\r') {
+              if (sb.length() != 0) {
+                try {
+                  handleLine(sb.toString());
+                } catch (Exception ex) {
+                  log.log(Level.WARNING, "Failed to process line: " + sb.toString(), ex);
+                }
+                sb.setLength(0);
+              }
+            } else {
+              sb.append(c);
+            }
+          }
+        }
+      };
       this.inflightCall = this.httpAsyncClient.execute(HttpAsyncMethods.create(httpGet),
-          new AsyncCharConsumer<Boolean>() {
-
-            @Override
-            protected void onResponseReceived(HttpResponse response) {
-              if (response.getStatusLine().getStatusCode() != 200) {
-                if (listener != null) {
-                  listener.onConnectivityChanged(PointsSpy.this, false,
-                      response.getStatusLine().getStatusCode() + " " +
-                          response.getStatusLine().getReasonPhrase());
-                }
-              } else {
-                log.info("Spy request established");
-                if (!connected.getAndSet(true)) {
-                  if (listener != null) {
-                    listener.onConnectivityChanged(PointsSpy.this, true, null);
-                  }
-                }
-              }
-
-            }
-
-            @Override
-            protected Boolean buildResult(HttpContext context) {
-              // we don't have a "result" per-say.
-              // if the stream ever finishes, we are no longer connected (the server enforces a time limit).
-              if (connected.getAndSet(false)) {
-                if (listener != null) {
-                  listener.onConnectivityChanged(PointsSpy.this, false,
-                      "Stream Interrupted");
-                }
-              }
-              return null;
-            }
-
-            @Override
-            protected void onCharReceived(CharBuffer buf, IOControl ioctrl) throws IOException {
-              while (buf.hasRemaining()) {
-                char c = buf.get();
-                if (c == '\n' || c == '\r') {
-                  if (curr.length() != 0) {
-                    try {
-                      handleLine(curr.toString());
-                    } catch (Exception ex) {
-                      log.log(Level.WARNING, "Failed to process line: " + curr.toString(), ex);
-                    }
-                    curr.setLength(0);
-                  }
-                } else {
-                  curr.append(c);
-                }
-              }
-            }
-          },
+          responseConsumer,
           new FutureCallback<Boolean>() {
             @Override
             public void completed(Boolean result) {
               log.warning("Spy request completed (will reconnect)");
+              responseConsumer.cancel();
               httpGet.abort();
             }
 
@@ -283,6 +283,7 @@ public class PointsSpy {
             public void failed(Exception ex) {
               log.log(Level.WARNING, "Spy request failed (will reconnect)", ex);
               httpGet.abort();
+              responseConsumer.cancel();
               if (PointsSpy.this.listener != null) {
                 PointsSpy.this.listener.onConnectivityChanged(PointsSpy.this,
                     false, "DISCONNECTED: " + ex.getMessage());
@@ -292,6 +293,7 @@ public class PointsSpy {
 
             @Override
             public void cancelled() {
+              responseConsumer.cancel();
               httpGet.abort();
             }
           });

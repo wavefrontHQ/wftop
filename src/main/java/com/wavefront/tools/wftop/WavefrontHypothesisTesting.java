@@ -33,7 +33,7 @@ public class WavefrontHypothesisTesting {
   private double minimumPPS = 1000;
 
   @Parameter(names = {"-recommendations"}, description = "Number of recommendations per tier")
-  private int recommendations = 25;
+  private int recommendations = 50;
 
   @Parameter(names = {"-generationTime"}, description = "Time for each generation (at least one minute)")
   private long generationTime = 60000;
@@ -112,9 +112,6 @@ public class WavefrontHypothesisTesting {
       @Override
       public void onConnectivityChanged(PointsSpy pointsSpy, boolean connected, @Nullable String message) {
         log.info("Connectivity Changed, connected: " + connected + ": " + message);
-        if (!connected) {
-          pointsSpy.start();
-        }
       }
 
       @Override

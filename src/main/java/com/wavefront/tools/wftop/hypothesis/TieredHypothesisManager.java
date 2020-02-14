@@ -5,6 +5,8 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.collect.Multimap;
 import com.wavefront.tools.wftop.components.PointsSpy;
 
+import java.text.MessageFormat;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -45,8 +47,9 @@ public class TieredHypothesisManager {
     ignore.set(false);
     while (true) {
       if (!spy.isConnected()) {
-        log.info("Exiting due to connectivity failure");
-        System.exit(1);
+        log.info("Reconnecting...");
+        spy.start();
+        Thread.sleep(10000);
       }
       log.info("Evaluating all hypothesis to collect non-cumulative PPS data");
       for (HypothesisManager hypothesisManager : managers) {
@@ -84,13 +87,14 @@ public class TieredHypothesisManager {
         List<Hypothesis> results = hypothesisManager.getAllHypothesis();
         List<Hypothesis> candidates = results.stream().
             filter(s -> s.getAge() > 1).
-            filter(s -> s.getPPSSavings(numBackends.get(), rateArg) > minimumPPS).
-            sorted((o1, o2) -> Double.compare(o2.getRawPPSSavings(), o1.getRawPPSSavings())).
+            filter(s -> s.getPPSSavings(s.getAge() > 10, numBackends.get(), rateArg) > minimumPPS).
+            sorted((o1, o2) -> Double.compare(o2.getRawPPSSavings(o2.getAge() > 10),
+                o1.getRawPPSSavings(o1.getAge() > 10))).
             limit(maxRecommendations).
             collect(Collectors.toList());
         if (candidates.isEmpty()) continue;
         double savingsPPS = candidates.stream().
-            mapToDouble(s -> s.getPPSSavings(numBackends.get(), rateArg)).
+            mapToDouble(s -> s.getPPSSavings(s.getAge() > 10, numBackends.get(), rateArg)).
             sum();
         System.out.println("Confidence: " + ((1.0 - hypothesisManager.getConfidence()) * 100) + "%");
         System.out.println("Hypothesis Tracked: " + results.size() + " - potential total savings: " +
@@ -98,10 +102,13 @@ public class TieredHypothesisManager {
         int index = 1;
         for (Hypothesis hypothesis : candidates) {
           double hConfidence = 100.0 - 100 * hypothesis.getViolationPercentage();
-          double hSavings = hypothesis.getPPSSavings(numBackends.get(), rateArg);
-          System.out.println("Action " + index + ": " + hypothesis.getDescription() +
-              " (Savings: " + hSavings + "pps / Confidence: " + hConfidence +
-              "% / Generation: " + hypothesis.getAge() + ")");
+          double fifteenMinuteSavings = hypothesis.getPPSSavings(false, numBackends.get(), rateArg);
+          double lifetimeSavings = hypothesis.getPPSSavings(true, numBackends.get(), rateArg);
+          System.out.println(MessageFormat.format(
+              "{0}: {1} (Savings: {2,number,#.##}pps (15m) / {3,number,#.##}pps (lifetime) " +
+                  "/ Confidence: {4,number,#.##}% / TTL: {5})",
+              index, hypothesis.getDescription(), fifteenMinuteSavings, lifetimeSavings,
+              hConfidence, Duration.ofMillis(hypothesis.getAge() * 2 * generationTime).toString()));
           index++;
         }
       }
