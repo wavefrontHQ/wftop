@@ -43,7 +43,7 @@ public class MetricIsConstantHypothesis extends AbstractHypothesisImpl {
   }
 
   private long getEstimatedTotalSeriesCount() {
-    return values.size() <= maxTrackedSeries ? values.size() : Math.max(cardinality.cardinality(), maxTrackedSeries);
+    return values.size() < maxTrackedSeries ? values.size() : Math.max(cardinality.cardinality(), maxTrackedSeries);
   }
 
   @Override
