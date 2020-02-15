@@ -96,10 +96,10 @@ public class TieredHypothesisManager {
             mapToDouble(s -> s.getPPSSavings(s.getAge() > 10, numBackends.get(), rateArg)).
             sum();
         System.out.println(MessageFormat.format(
-            "Confidence: {0}% / Hypothesis Tracked: {0} / Hypothesis Rejected: {1}" +
-                (1.0 - hypothesisManager.getConfidence()) * 100, results.size(),
+            "Confidence: {0}% / Hypothesis Tracked: {1} / Hypothesis Rejected: {2}",
+            (1.0 - hypothesisManager.getConfidence()) * 100, results.size(),
             hypothesisManager.getBlacklistedHypothesis()));
-        System.out.println(MessageFormat.format("Potential Savings: {2,number,#.##}pps", savingsPPS));
+        System.out.println(MessageFormat.format("Potential Savings: {0,number,#.##}pps", savingsPPS));
         int index = 1;
         for (Hypothesis hypothesis : candidates) {
           double hConfidence = 100.0 - 100 * hypothesis.getViolationPercentage();
