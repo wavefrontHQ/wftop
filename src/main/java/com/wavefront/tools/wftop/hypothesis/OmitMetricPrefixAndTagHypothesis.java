@@ -23,7 +23,7 @@ public class OmitMetricPrefixAndTagHypothesis extends AbstractHypothesisImpl {
 
   @Override
   public String getDescription() {
-    return "Eliminate metrics starting with: \"" + prefix + "\" with the tag: \"" + tagK + "\"=\"" + tagV + "\"";
+    return "Eliminate unused metrics starting with: \"" + prefix + "\" with the tag: \"" + tagK + "\"=\"" + tagV + "\"";
   }
 
   @Override

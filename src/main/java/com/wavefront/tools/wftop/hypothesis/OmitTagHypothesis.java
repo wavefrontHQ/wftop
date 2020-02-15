@@ -21,7 +21,7 @@ public class OmitTagHypothesis extends AbstractHypothesisImpl {
 
   @Override
   public String getDescription() {
-    return "Eliminate all metrics with the tag: \"" + tagK + "\"=\"" + tagV + "\"";
+    return "Eliminate all unused metrics with the tag: \"" + tagK + "\"=\"" + tagV + "\"";
   }
 
   @Override

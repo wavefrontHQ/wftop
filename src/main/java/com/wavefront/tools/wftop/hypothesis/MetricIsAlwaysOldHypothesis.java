@@ -3,23 +3,24 @@ package com.wavefront.tools.wftop.hypothesis;
 import com.google.common.collect.Multimap;
 
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
-public class OmitExactMetricHypothesis extends AbstractHypothesisImpl {
+public class MetricIsAlwaysOldHypothesis extends AbstractHypothesisImpl {
 
   private final String metricName;
 
   @Override
   public Hypothesis cloneHypothesis() {
-    return new OmitExactMetricHypothesis(metricName);
+    return new MetricIsAlwaysOldHypothesis(metricName);
   }
 
-  public OmitExactMetricHypothesis(String metricName) {
+  public MetricIsAlwaysOldHypothesis(String metricName) {
     this.metricName = metricName;
   }
 
   @Override
   public String getDescription() {
-    return "Eliminate the unused metric: \"" + metricName + "\"";
+    return "Eliminate the metric: \"" + metricName + "\" which is always reporting more than an hour ago in the past";
   }
 
   @Override
@@ -29,7 +30,7 @@ public class OmitExactMetricHypothesis extends AbstractHypothesisImpl {
       hits.incrementAndGet();
       rate.mark();
       instancenousRate.mark();
-      if (accessed) {
+      if (timestamp > System.currentTimeMillis() - TimeUnit.HOURS.toMillis(1)) {
         violations.incrementAndGet();
       }
       return true;
@@ -41,7 +42,7 @@ public class OmitExactMetricHypothesis extends AbstractHypothesisImpl {
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
-    OmitExactMetricHypothesis that = (OmitExactMetricHypothesis) o;
+    MetricIsAlwaysOldHypothesis that = (MetricIsAlwaysOldHypothesis) o;
     return metricName.equals(that.metricName);
   }
 

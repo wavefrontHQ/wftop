@@ -10,6 +10,7 @@ import com.wavefront.tools.wftop.hypothesis.*;
 
 import javax.annotation.Nullable;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
@@ -72,6 +73,13 @@ public class WavefrontHypothesisTesting {
       public void onMetricReceived(PointsSpy pointsSpy, boolean accessed, String metric, String host,
                                    Multimap<String, String> pointTags, long timestamp, double value) {
         tieredHypothesisManager.consumeReportPoint(accessed, metric, host, pointTags, timestamp, value);
+        // always attempt a constant hypothesis (hm will reject if already blacklisted).
+        tieredHypothesisManager.offerHypothesis(new MetricIsConstantHypothesis(metric, 10000));
+        // attempt a stale metric hypothesis if we see a metric that's old
+        if (timestamp < System.currentTimeMillis() - TimeUnit.HOURS.toMillis(1)) {
+          tieredHypothesisManager.offerHypothesis(new MetricIsAlwaysOldHypothesis(metric));
+        }
+        // if a metric is not accessed, attempt a whole series of hypothesis.
         if (!accessed) {
           tieredHypothesisManager.offerHypothesis(new OmitExactMetricHypothesis(metric));
           for (Map.Entry<String, String> entry : pointTags.entries()) {

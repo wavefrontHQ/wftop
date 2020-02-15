@@ -19,7 +19,7 @@ public class OmitMetricPrefixHypothesis extends AbstractHypothesisImpl {
 
   @Override
   public String getDescription() {
-    return "Eliminate all metrics with the prefix \"" + prefix + "\"";
+    return "Eliminate unused metrics with the prefix \"" + prefix + "\"";
   }
 
   @Override

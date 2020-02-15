@@ -21,7 +21,7 @@ public class OmitHostPrefixAndMetricHypothesis extends AbstractHypothesisImpl {
 
   @Override
   public String getDescription() {
-    return "Eliminate metric: \"" + metric + "\" for host prefix: \"" + hostPrefix + "\"";
+    return "Eliminate unused metric: \"" + metric + "\" for host prefix: \"" + hostPrefix + "\"";
   }
 
   @Override

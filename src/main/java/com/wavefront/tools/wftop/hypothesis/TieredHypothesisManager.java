@@ -92,25 +92,27 @@ public class TieredHypothesisManager {
                 o1.getRawPPSSavings(o1.getAge() > 10))).
             limit(maxRecommendations).
             collect(Collectors.toList());
-        if (candidates.isEmpty()) continue;
         double savingsPPS = candidates.stream().
             mapToDouble(s -> s.getPPSSavings(s.getAge() > 10, numBackends.get(), rateArg)).
             sum();
-        System.out.println("Confidence: " + ((1.0 - hypothesisManager.getConfidence()) * 100) + "%");
-        System.out.println("Hypothesis Tracked: " + results.size() + " - potential total savings: " +
-            savingsPPS + "pps");
+        System.out.println(MessageFormat.format(
+            "Confidence: {0}% / Hypothesis Tracked: {0} / Hypothesis Rejected: {1}" +
+                (1.0 - hypothesisManager.getConfidence()) * 100, results.size(),
+            hypothesisManager.getBlacklistedHypothesis()));
+        System.out.println(MessageFormat.format("Potential Savings: {2,number,#.##}pps", savingsPPS));
         int index = 1;
         for (Hypothesis hypothesis : candidates) {
           double hConfidence = 100.0 - 100 * hypothesis.getViolationPercentage();
           double fifteenMinuteSavings = hypothesis.getPPSSavings(false, numBackends.get(), rateArg);
           double lifetimeSavings = hypothesis.getPPSSavings(true, numBackends.get(), rateArg);
           System.out.println(MessageFormat.format(
-              "{0}: {1} (Savings: {2,number,#.##}pps (15m) / {3,number,#.##}pps (lifetime) " +
+              "{0}. {1} (Savings: {2,number,#.##}pps (15m) / {3,number,#.##}pps (lifetime) " +
                   "/ Confidence: {4,number,#.##}% / TTL: {5})",
               index, hypothesis.getDescription(), fifteenMinuteSavings, lifetimeSavings,
               hConfidence, Duration.ofMillis(hypothesis.getAge() * 2 * generationTime).toString()));
           index++;
         }
+        System.out.println();
       }
       System.out.flush();
       for (HypothesisManager hypothesisManager : managers) {

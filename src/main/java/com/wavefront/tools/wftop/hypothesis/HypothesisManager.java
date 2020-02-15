@@ -147,5 +147,9 @@ public class HypothesisManager {
     blacklistedHypothesis.remove(h);
     hypothesisList.add(h);
   }
+
+  public int getBlacklistedHypothesis() {
+    return blacklistedHypothesis.size();
+  }
 }
 
