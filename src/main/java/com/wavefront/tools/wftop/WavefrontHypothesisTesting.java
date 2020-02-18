@@ -27,6 +27,9 @@ public class WavefrontHypothesisTesting {
   @Parameter(names = {"-r", "-rate"}, description = "Sample rate")
   private double rateArg = 0.01;
 
+  @Parameter(names = {"-days"}, description = "Days to look back for access data")
+  private int usageDaysLookback = 7;
+
   @Parameter(names = {"-sep", "-separators"}, description = "Separators")
   private String separatorsArg = ".-_=";
 
@@ -55,6 +58,7 @@ public class WavefrontHypothesisTesting {
   public void run() throws InterruptedException {
     PointsSpy spy = new PointsSpy();
     spy.setParameters(cluster, token, null, null, rateArg);
+    spy.setUsageDaysThreshold(usageDaysLookback);
     AtomicInteger numBackends = new AtomicInteger(1);
     TieredHypothesisManager tieredHypothesisManager = new TieredHypothesisManager(1000, generationTime, spy,
         recommendations, 0.001, 0.02, 0.05, 0.10, 0.20, 1.0);
