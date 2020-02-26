@@ -14,15 +14,19 @@ public class HypothesisManager {
 
   private final int maxHypothesisCount;
   private final double confidence;
+  private final long usageLookbackDays;
+  private final double usageFPPRate;
   private final AtomicInteger droppedHypothesis = new AtomicInteger();
   private final List<Hypothesis> hypothesisList = new CopyOnWriteArrayList<>();
   private final Set<Hypothesis> blacklistedHypothesis = new HashSet<>();
 
   private final AtomicBoolean fullEvaluationMode = new AtomicBoolean(true);
 
-  public HypothesisManager(int maxHypothesisCount, double confidence) {
+  public HypothesisManager(int maxHypothesisCount, double confidence, long usageLookbackDays, double usageFPPRate) {
     this.maxHypothesisCount = maxHypothesisCount;
     this.confidence = confidence;
+    this.usageLookbackDays = usageLookbackDays;
+    this.usageFPPRate = usageFPPRate;
   }
 
   public boolean isFull() {
@@ -68,14 +72,14 @@ public class HypothesisManager {
   public List<Hypothesis> removeAllViolatingHypothesis(double upperBound) {
     synchronized (this) {
       for (Hypothesis h : hypothesisList) {
-        if (h.getViolationPercentage() > confidence) {
+        if (h.getViolationPercentage(usageLookbackDays, usageFPPRate) > confidence) {
           blacklistedHypothesis.add(h);
         }
       }
       List<Hypothesis> toReturn = new ArrayList<>();
       for (Hypothesis h : hypothesisList) {
-        if (h.getViolationPercentage() > confidence ||
-            h.getViolationPercentage() <= upperBound) {
+        if (h.getViolationPercentage(usageLookbackDays, usageFPPRate) > confidence ||
+            h.getViolationPercentage(usageLookbackDays, usageFPPRate) <= upperBound) {
           toReturn.add(h);
         }
       }

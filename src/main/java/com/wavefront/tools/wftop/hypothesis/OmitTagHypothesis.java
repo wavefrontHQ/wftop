@@ -4,7 +4,7 @@ import com.google.common.collect.Multimap;
 
 import java.util.Objects;
 
-public class OmitTagHypothesis extends AbstractHypothesisImpl {
+public class OmitTagHypothesis extends AbstractUsageDataFPPAdjustingHypothesisImpl {
 
   private final String tagK;
   private final String tagV;

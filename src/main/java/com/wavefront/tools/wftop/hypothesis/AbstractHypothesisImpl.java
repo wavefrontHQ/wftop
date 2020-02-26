@@ -40,7 +40,7 @@ public abstract class AbstractHypothesisImpl implements Hypothesis {
   }
 
   @Override
-  public double getViolationPercentage() {
+  public double getViolationPercentage(long usageLookupDays, double usageFPPRate) {
     return (double) violations.get() / hits.get();
   }
 

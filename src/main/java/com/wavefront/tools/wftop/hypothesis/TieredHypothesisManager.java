@@ -27,13 +27,19 @@ public class TieredHypothesisManager {
   private final AtomicBoolean ignore = new AtomicBoolean(true);
   private final long generationTime;
 
+  private final long usageLookbackDays;
+  private final double usageFPPRate;
+
   public TieredHypothesisManager(int maxHypothesis, long generationTime, PointsSpy pointsSpy,
-                                 int maxRecommendations, double... confidences) {
+                                 int maxRecommendations, long usageLookbackDays, double usageFPPRate,
+                                 double... confidences) {
     this.generationTime = generationTime;
     this.spy = pointsSpy;
     this.maxRecommendations = maxRecommendations;
+    this.usageLookbackDays = usageLookbackDays;
+    this.usageFPPRate = usageFPPRate;
     for (double confidence : confidences) {
-      managers.add(new HypothesisManager(maxHypothesis, confidence));
+      managers.add(new HypothesisManager(maxHypothesis, confidence, usageLookbackDays, usageFPPRate));
     }
   }
 
@@ -102,7 +108,7 @@ public class TieredHypothesisManager {
         System.out.println(MessageFormat.format("Potential Savings: {0,number,#.##}pps", savingsPPS));
         int index = 1;
         for (Hypothesis hypothesis : candidates) {
-          double hConfidence = 100.0 - 100 * hypothesis.getViolationPercentage();
+          double hConfidence = 100.0 - 100 * hypothesis.getViolationPercentage(usageLookbackDays, usageFPPRate);
           double fifteenMinuteSavings = hypothesis.getPPSSavings(false, numBackends.get(), rateArg);
           double lifetimeSavings = hypothesis.getPPSSavings(true, numBackends.get(), rateArg);
           System.out.println(MessageFormat.format(
@@ -129,7 +135,7 @@ public class TieredHypothesisManager {
     toAdd.clear();
     List<Hypothesis> rejected = hypothesisManager.removeAllViolatingHypothesis(confidence);
     for (Hypothesis h : rejected) {
-      if (h.getViolationPercentage() <= confidence) {
+      if (h.getViolationPercentage(usageLookbackDays, usageFPPRate) <= confidence) {
         if (previous != null) {
           previous.addHypothesis(h);
         }

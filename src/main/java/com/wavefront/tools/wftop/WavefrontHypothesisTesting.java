@@ -30,6 +30,9 @@ public class WavefrontHypothesisTesting {
   @Parameter(names = {"-days"}, description = "Days to look back for access data")
   private int usageDaysLookback = 7;
 
+  @Parameter(names = {"-usageFPP"}, description = "False positive rate of usage data")
+  private double usageFPPRate = 0.01;
+
   @Parameter(names = {"-sep", "-separators"}, description = "Separators")
   private String separatorsArg = ".-_=";
 
@@ -61,7 +64,7 @@ public class WavefrontHypothesisTesting {
     spy.setUsageDaysThreshold(usageDaysLookback);
     AtomicInteger numBackends = new AtomicInteger(1);
     TieredHypothesisManager tieredHypothesisManager = new TieredHypothesisManager(1000, generationTime, spy,
-        recommendations, 0.001, 0.02, 0.05, 0.10, 0.20, 1.0);
+        recommendations, usageDaysLookback, usageFPPRate, 0.001, 0.02, 0.05, 0.10, 0.20, 1.0);
     spy.setListener(new PointsSpy.Listener() {
       @Override
       public void onBackendCountChanges(PointsSpy pointsSpy, int backends) {

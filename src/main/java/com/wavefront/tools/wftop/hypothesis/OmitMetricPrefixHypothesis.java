@@ -4,7 +4,7 @@ import com.google.common.collect.Multimap;
 
 import java.util.Objects;
 
-public class OmitMetricPrefixHypothesis extends AbstractHypothesisImpl {
+public class OmitMetricPrefixHypothesis extends AbstractUsageDataFPPAdjustingHypothesisImpl {
 
   private final String prefix;
 

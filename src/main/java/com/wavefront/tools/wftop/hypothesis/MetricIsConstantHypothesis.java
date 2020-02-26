@@ -25,8 +25,10 @@ public class MetricIsConstantHypothesis extends AbstractHypothesisImpl {
   }
 
   @Override
-  public double getViolationPercentage() {
-    return super.getViolationPercentage() * values.size() / getEstimatedTotalSeriesCount();
+  public double getViolationPercentage(long usageLookupDays, double usageFPPRate) {
+    double confidence = 1.0 - super.getViolationPercentage(usageLookupDays, usageFPPRate);
+    confidence *= (double) values.size() / getEstimatedTotalSeriesCount();
+    return 1.0 - confidence;
   }
 
   @Override
