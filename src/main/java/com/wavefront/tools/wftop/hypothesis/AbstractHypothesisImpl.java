@@ -29,7 +29,7 @@ public abstract class AbstractHypothesisImpl implements Hypothesis {
   }
 
   @Override
-  public double getRawPPSSavings(boolean lifetime) {
+  public double getRawPPSSavingsRate(boolean lifetime) {
     if (lifetime) return rate.getMeanRate();
     return rate.getFifteenMinuteRate();
   }

@@ -2,12 +2,15 @@ package com.wavefront.tools.wftop.hypothesis;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.wavefront.tools.wftop.components.PointsSpy;
 
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -15,6 +18,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+/**
+ * This class manages a collection of {@link HypothesisManager} that's differed by
+ * confidence/error rate.  {@link Hypothesis} that fails one level will be passed down
+ * to a less strict level via confidences.
+ */
 public class TieredHypothesisManager {
 
   private static final Logger log = Logger.getLogger(TieredHypothesisManager.class.getCanonicalName());
@@ -23,13 +31,18 @@ public class TieredHypothesisManager {
   private final PointsSpy spy;
   private final int maxRecommendations;
   private final Cache<Hypothesis, Boolean> hypothesisDedupCache = Caffeine.newBuilder().
-      expireAfterWrite(5, TimeUnit.MINUTES).build();
+      expireAfterWrite(5, TimeUnit.MINUTES).
+      expireAfterAccess(5, TimeUnit.MINUTES).
+      build();
   private final AtomicBoolean ignore = new AtomicBoolean(true);
   private final long generationTime;
 
   private final long usageLookbackDays;
   private final double usageFPPRate;
 
+  /**
+   * @param confidences or margin of error
+   */
   public TieredHypothesisManager(int maxHypothesis, long generationTime, PointsSpy pointsSpy,
                                  int maxRecommendations, long usageLookbackDays, double usageFPPRate,
                                  double... confidences) {
@@ -38,7 +51,9 @@ public class TieredHypothesisManager {
     this.maxRecommendations = maxRecommendations;
     this.usageLookbackDays = usageLookbackDays;
     this.usageFPPRate = usageFPPRate;
-    for (double confidence : confidences) {
+
+    double[] confidencesCopy = Arrays.copyOf(confidences, confidences.length);
+    for (double confidence : confidencesCopy) {
       managers.add(new HypothesisManager(maxHypothesis, confidence, usageLookbackDays, usageFPPRate));
     }
   }
@@ -93,11 +108,14 @@ public class TieredHypothesisManager {
         List<Hypothesis> results = hypothesisManager.getAllHypothesis();
         List<Hypothesis> candidates = results.stream().
             filter(s -> s.getAge() > 1).
-            filter(s -> s.getPPSSavings(s.getAge() > 10, numBackends.get(), rateArg) > minimumPPS).
-            sorted((o1, o2) -> Double.compare(o2.getRawPPSSavings(o2.getAge() > 10),
-                o1.getRawPPSSavings(o1.getAge() > 10))).
+            // if saving is greater than minPPS
+                filter(s -> s.getPPSSavings(s.getAge() > 10, numBackends.get(), rateArg) > minimumPPS).
+            // sort by reporting rate
+                sorted((o1, o2) -> Double.compare(o2.getRawPPSSavingsRate(o2.getAge() > 10),
+                o1.getRawPPSSavingsRate(o1.getAge() > 10))).
             limit(maxRecommendations).
             collect(Collectors.toList());
+        // total saving of this hypothesis manager
         double savingsPPS = candidates.stream().
             mapToDouble(s -> s.getPPSSavings(s.getAge() > 10, numBackends.get(), rateArg)).
             sum();
@@ -127,22 +145,18 @@ public class TieredHypothesisManager {
     }
   }
 
-  private void bidirectionalProcessHypothesis(double confidence, HypothesisManager previous,
+  private void bidirectionalProcessHypothesis(double prevConfidence, HypothesisManager previous,
                                               List<Hypothesis> toAdd, HypothesisManager hypothesisManager) {
     for (Hypothesis h : toAdd) {
       hypothesisManager.addHypothesis(h);
     }
     toAdd.clear();
-    List<Hypothesis> rejected = hypothesisManager.removeAllViolatingHypothesis(confidence);
-    for (Hypothesis h : rejected) {
-      if (h.getViolationPercentage(usageLookbackDays, usageFPPRate) <= confidence) {
-        if (previous != null) {
-          previous.addHypothesis(h);
-        }
-      } else {
-        toAdd.add(h);
-      }
+    HypothesisEvalResult result = hypothesisManager.removeAllViolatingHypothesis(prevConfidence);
+
+    if (previous != null) {
+      result.getWithinBounds().forEach(previous::addHypothesis);
     }
+    toAdd.addAll(result.getRejected());
   }
 
   public void consumeReportPoint(boolean accessed, String metric, String host, Multimap<String, String> pointTags,

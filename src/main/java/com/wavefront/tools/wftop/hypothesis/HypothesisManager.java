@@ -2,7 +2,6 @@ package com.wavefront.tools.wftop.hypothesis;
 
 import com.google.common.collect.Multimap;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -10,6 +9,11 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * This class manage a list of hypothesis within {@link #maxHypothesisCount}
+ * Sort base on {@link Hypothesis#getInstaneousRate()}
+ * Drop base on {@link Hypothesis#getViolationPercentage(long, double)} ()}
+ */
 public class HypothesisManager {
 
   private final int maxHypothesisCount;
@@ -69,23 +73,30 @@ public class HypothesisManager {
     fullEvaluationMode.set(false);
   }
 
-  public List<Hypothesis> removeAllViolatingHypothesis(double upperBound) {
+  /**
+   * Evaluate and move the maintained hypothesisList accordingly.
+   *
+   * @param upperBound accepted upperBound
+   * @return hypothesis that violates the confidences, or still within upperBound.
+   */
+  public HypothesisEvalResult removeAllViolatingHypothesis(double upperBound) {
     synchronized (this) {
+      HypothesisEvalResult res = HypothesisEvalResult.newHypothesisEvalResult();
       for (Hypothesis h : hypothesisList) {
+        if (h.getViolationPercentage(usageLookbackDays, usageFPPRate) <= upperBound) {
+          res.getWithinBounds().add(h);
+        }
+
         if (h.getViolationPercentage(usageLookbackDays, usageFPPRate) > confidence) {
+          res.getRejected().add(h);
           blacklistedHypothesis.add(h);
         }
       }
-      List<Hypothesis> toReturn = new ArrayList<>();
-      for (Hypothesis h : hypothesisList) {
-        if (h.getViolationPercentage(usageLookbackDays, usageFPPRate) > confidence ||
-            h.getViolationPercentage(usageLookbackDays, usageFPPRate) <= upperBound) {
-          toReturn.add(h);
-        }
-      }
-      hypothesisList.removeAll(toReturn);
+
+      hypothesisList.removeAll(res.getRejected());
+      hypothesisList.removeAll(res.getWithinBounds());
       sortHypothesisByInstantaneousRate();
-      return toReturn;
+      return res;
     }
   }
 
@@ -102,6 +113,9 @@ public class HypothesisManager {
     }
   }
 
+  /**
+   * Trim by average and only if enough recommendations are provided.
+   */
   public void trimLowPPSHypothesis(int maxRecommendations) {
     double average = hypothesisList.stream().
         filter(h -> h.getAge() > 1).

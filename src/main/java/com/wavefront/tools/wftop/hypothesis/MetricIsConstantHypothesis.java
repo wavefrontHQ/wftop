@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 public class MetricIsConstantHypothesis extends AbstractHypothesisImpl {
 
   private final String metricName;
+  // tags to value
   private final Map<Multimap<String, String>, Double> values = new ConcurrentHashMap<>();
   private final HLL cardinality = new HLL(13, 5);
   private final int maxTrackedSeries;
@@ -27,6 +28,8 @@ public class MetricIsConstantHypothesis extends AbstractHypothesisImpl {
   @Override
   public double getViolationPercentage(long usageLookupDays, double usageFPPRate) {
     double confidence = 1.0 - super.getViolationPercentage(usageLookupDays, usageFPPRate);
+    // multiply by ratio of what we are tracking vs seen
+    // 1 if < maxTrackedSeries, else < 1.
     confidence *= (double) values.size() / getEstimatedTotalSeriesCount();
     return 1.0 - confidence;
   }

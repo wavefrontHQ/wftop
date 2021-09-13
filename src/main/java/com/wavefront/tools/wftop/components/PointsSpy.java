@@ -42,6 +42,8 @@ import java.util.logging.Logger;
 public class PointsSpy {
 
   private static final Logger log = Logger.getLogger(PointsSpy.class.getCanonicalName());
+  private static final String POINT_UNACCESS_PREFIX = "[UNACCESSED] ";
+  private static final String POINT_ACCESS_PREFIX = "[ACCESSED]   ";
 
   /**
    * Ingestion has a weird format that's not like our ingestion unfortunately.
@@ -362,10 +364,10 @@ public class PointsSpy {
       }
     }
     if (spyOnPoint) {
-      if (line.startsWith("[UNACCESSED] ")) {
-        parseMetric(false, line.substring(13));
-      } else if (line.startsWith("[ACCESSED]   ")) {
-        parseMetric(true, line.substring(13));
+      if (line.startsWith(POINT_UNACCESS_PREFIX)) {
+        parseMetric(false, line.substring(POINT_UNACCESS_PREFIX.length()));
+      } else if (line.startsWith(POINT_ACCESS_PREFIX)) {
+        parseMetric(true, line.substring(POINT_ACCESS_PREFIX.length()));
       } else {
         // for old wavefront clusters, no usage information is returned.
         try {
