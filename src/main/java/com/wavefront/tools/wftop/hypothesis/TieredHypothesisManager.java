@@ -5,16 +5,20 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.wavefront.tools.wftop.components.PointsSpy;
+import org.apache.commons.lang.StringUtils;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -58,7 +62,7 @@ public class TieredHypothesisManager {
     }
   }
 
-  public void run(AtomicInteger numBackends, double minimumPPS, double rateArg) throws InterruptedException {
+  public void run(TieredHMAsset asset) throws InterruptedException {
     for (HypothesisManager hypothesisManager : managers) {
       hypothesisManager.evaluateAllHypothesis();
     }
@@ -106,19 +110,9 @@ public class TieredHypothesisManager {
       for (HypothesisManager hypothesisManager : managers) {
         if (hypothesisManager.getConfidence() >= 1.0) continue; // ignore the catch-all hypothesis.
         List<Hypothesis> results = hypothesisManager.getAllHypothesis();
-        List<Hypothesis> candidates = results.stream().
-            filter(s -> s.getAge() > 1).
-            // if saving is greater than minPPS
-                filter(s -> s.getPPSSavings(s.getAge() > 10, numBackends.get(), rateArg) > minimumPPS).
-            // sort by reporting rate
-                sorted((o1, o2) -> Double.compare(o2.getRawPPSSavingsRate(o2.getAge() > 10),
-                o1.getRawPPSSavingsRate(o1.getAge() > 10))).
-            limit(maxRecommendations).
-            collect(Collectors.toList());
+        List<Hypothesis> candidates = getRecommendations(asset, results);
         // total saving of this hypothesis manager
-        double savingsPPS = candidates.stream().
-            mapToDouble(s -> s.getPPSSavings(s.getAge() > 10, numBackends.get(), rateArg)).
-            sum();
+        double savingsPPS = getSavingsPPS(asset, candidates);
         System.out.println(MessageFormat.format(
             "Confidence: {0}% / Hypothesis Tracked: {1} / Hypothesis Rejected: {2}",
             (1.0 - hypothesisManager.getConfidence()) * 100, results.size(),
@@ -127,8 +121,10 @@ public class TieredHypothesisManager {
         int index = 1;
         for (Hypothesis hypothesis : candidates) {
           double hConfidence = 100.0 - 100 * hypothesis.getViolationPercentage(usageLookbackDays, usageFPPRate);
-          double fifteenMinuteSavings = hypothesis.getPPSSavings(false, numBackends.get(), rateArg);
-          double lifetimeSavings = hypothesis.getPPSSavings(true, numBackends.get(), rateArg);
+          double fifteenMinuteSavings = hypothesis.getPPSSavings(
+              false, asset.getNumBackends().get(), asset.getRateArg());
+          double lifetimeSavings = hypothesis.getPPSSavings(
+              true, asset.getNumBackends().get(), asset.getRateArg());
           System.out.println(MessageFormat.format(
               "{0}. {1} (Savings: {2,number,#.##}pps (15m) / {3,number,#.##}pps (lifetime) " +
                   "/ Confidence: {4,number,#.##}% / TTL: {5})",
@@ -136,13 +132,41 @@ public class TieredHypothesisManager {
               hConfidence, Duration.ofMillis(hypothesis.getAge() * 2 * generationTime).toString()));
           index++;
         }
+
         System.out.println();
       }
       System.out.flush();
+      if (asset.getStopSignal().get()) {
+        spy.stop();
+        writeToExcel(managers, asset);
+        break;
+      }
       for (HypothesisManager hypothesisManager : managers) {
         hypothesisManager.incrementAge();
       }
     }
+  }
+
+  private double getSavingsPPS(TieredHMAsset asset, List<Hypothesis> candidates) {
+    return candidates.stream().
+        mapToDouble(s -> s.getPPSSavings(
+            s.getAge() > 10,
+            asset.getNumBackends().get(),
+            asset.getRateArg())).
+        sum();
+  }
+
+  private List<Hypothesis> getRecommendations(TieredHMAsset asset, List<Hypothesis> results) {
+    return results.stream().
+        filter(s -> s.getAge() > 1).
+        // if saving is greater than minPPS
+            filter(s -> s.getPPSSavings(s.getAge() > 10,
+            asset.getNumBackends().get(), asset.getRateArg()) > asset.getMinimumPPS()).
+        // sort by reporting rate
+            sorted((o1, o2) -> Double.compare(o2.getRawPPSSavingsRate(o2.getAge() > 10),
+            o1.getRawPPSSavingsRate(o1.getAge() > 10))).
+        limit(maxRecommendations).
+        collect(Collectors.toList());
   }
 
   private void bidirectionalProcessHypothesis(double prevConfidence, HypothesisManager previous,
@@ -181,5 +205,72 @@ public class TieredHypothesisManager {
         break;
       }
     }
+  }
+
+  public void writeToExcel(List<HypothesisManager> managers, TieredHMAsset asset) {
+    if (StringUtils.isEmpty(asset.getOutputFile())) {
+      log.info("No output file provided.");
+      return;
+    } else {
+      log.info("Begin writing to output: " + asset.getOutputFile());
+    }
+    XSSFWorkbook workbook = new XSSFWorkbook();
+    List<String> cellTitles = Lists.newArrayList(
+        "Timeseries", "PPS (15m)", "PPS (mean)", "Confidence", "TTL", "Additional Info");
+
+    for (HypothesisManager hypothesisManager : managers) {
+      if (hypothesisManager.getConfidence() >= 1.0) continue; // ignore the catch-all hypothesis.
+      log.info("Writing confidence " + hypothesisManager.getConfidence());
+      List<Hypothesis> results = hypothesisManager.getAllHypothesis();
+      List<Hypothesis> candidates = getRecommendations(asset, results);
+      // total saving of this hypothesis manager
+      double savingsPPS = getSavingsPPS(asset, candidates);
+      XSSFSheet sheet = workbook.createSheet(MessageFormat.format(
+          "Confidence {0}% | Potential Savings: {0,number,#.##}pps",
+          (1.0 - hypothesisManager.getConfidence()) * 100, savingsPPS));
+
+      int rowInd = 0;
+      Row header = sheet.createRow(rowInd++);
+      int cellInd = 0;
+      for (String title : cellTitles) {
+        Cell headerCell = header.createCell(cellInd);
+        headerCell.setCellValue(title);
+        cellInd++;
+      }
+
+      Cell cell;
+      for (Hypothesis hypothesis : candidates) {
+        double hConfidence = 100.0 - 100 * hypothesis.getViolationPercentage(usageLookbackDays, usageFPPRate);
+        double fifteenMinuteSavings = hypothesis.getPPSSavings(
+            false, asset.getNumBackends().get(), asset.getRateArg());
+        double lifetimeSavings = hypothesis.getPPSSavings(
+            true, asset.getNumBackends().get(), asset.getRateArg());
+
+        Row row = sheet.createRow(rowInd++);
+        // "Timeseries", "PPS (15m)", "PPS (mean)", "Confidence", "TTL", "Additional Info");
+        List<String> strings = hypothesis.getDimensions();
+        String series = String.join(", ", strings);
+        cell = row.createCell(0);
+        cell.setCellValue(series);
+        cell = row.createCell(1);
+        cell.setCellValue(fifteenMinuteSavings);
+        cell = row.createCell(2);
+        cell.setCellValue(lifetimeSavings);
+        cell = row.createCell(3);
+        cell.setCellValue(hConfidence);
+        cell = row.createCell(4);
+        cell.setCellValue(Duration.ofMillis(hypothesis.getAge() * 2 * generationTime).toString());
+        cell = row.createCell(5);
+        cell.setCellValue(hypothesis.getDescription());
+      }
+    }
+
+    try (FileOutputStream out = new FileOutputStream(asset.getOutputFile() + ".xlsx")) {
+      workbook.write(out);
+    } catch (IOException e) {
+      log.warning("Unable to write to file " + asset.getOutputFile());
+    }
+
+    log.info("Done output.");
   }
 }

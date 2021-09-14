@@ -1,7 +1,9 @@
 package com.wavefront.tools.wftop.hypothesis;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
+import java.util.List;
 import java.util.Objects;
 
 public class OmitExactMetricHypothesis extends AbstractUsageDataFPPAdjustingHypothesisImpl {
@@ -20,6 +22,11 @@ public class OmitExactMetricHypothesis extends AbstractUsageDataFPPAdjustingHypo
   @Override
   public String getDescription() {
     return "Eliminate the unused metric: \"" + metricName + "\"";
+  }
+
+  @Override
+  public List<String> getDimensions() {
+    return Lists.newArrayList(metricName);
   }
 
   @Override

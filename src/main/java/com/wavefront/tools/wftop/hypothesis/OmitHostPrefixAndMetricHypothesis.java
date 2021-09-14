@@ -1,7 +1,9 @@
 package com.wavefront.tools.wftop.hypothesis;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
+import java.util.List;
 import java.util.Objects;
 
 public class OmitHostPrefixAndMetricHypothesis extends AbstractUsageDataFPPAdjustingHypothesisImpl {
@@ -22,6 +24,11 @@ public class OmitHostPrefixAndMetricHypothesis extends AbstractUsageDataFPPAdjus
   @Override
   public String getDescription() {
     return "Eliminate unused metric: \"" + metric + "\" for host prefix: \"" + hostPrefix + "\"";
+  }
+
+  @Override
+  public List<String> getDimensions() {
+    return Lists.newArrayList(metric, "source=" + hostPrefix);
   }
 
   @Override

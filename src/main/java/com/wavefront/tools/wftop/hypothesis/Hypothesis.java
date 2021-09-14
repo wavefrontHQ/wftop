@@ -3,6 +3,8 @@ package com.wavefront.tools.wftop.hypothesis;
 import com.google.common.collect.Multimap;
 import wavefront.report.ReportPoint;
 
+import java.util.List;
+
 /**
  * A hypothesis to reduce usage.
  *
@@ -13,6 +15,8 @@ public interface Hypothesis {
    * @return Human understandable description of the hypothesis
    */
   String getDescription();
+
+  List<String> getDimensions();
 
   Hypothesis cloneHypothesis();
 

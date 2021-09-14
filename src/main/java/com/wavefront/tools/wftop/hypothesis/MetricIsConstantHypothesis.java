@@ -1,11 +1,13 @@
 package com.wavefront.tools.wftop.hypothesis;
 
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.wavefront.tools.wftop.components.MurmurHash3;
 import net.agkn.hll.HLL;
 
 import java.text.MessageFormat;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -45,6 +47,11 @@ public class MetricIsConstantHypothesis extends AbstractHypothesisImpl {
             limit(10).
             map(v -> MessageFormat.format("{0,number,#.##}", v)).
             collect(Collectors.joining(", ")) + "]");
+  }
+
+  @Override
+  public List<String> getDimensions() {
+    return Lists.newArrayList(metricName);
   }
 
   private long getEstimatedTotalSeriesCount() {

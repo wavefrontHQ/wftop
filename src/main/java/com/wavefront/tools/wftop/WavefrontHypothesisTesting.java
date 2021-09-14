@@ -3,20 +3,26 @@ package com.wavefront.tools.wftop;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
+import com.beust.jcommander.internal.Lists;
 import com.google.common.collect.Multimap;
 import com.wavefront.tools.wftop.components.PointsSpy;
 import com.wavefront.tools.wftop.components.Type;
 import com.wavefront.tools.wftop.hypothesis.*;
 
 import javax.annotation.Nullable;
+import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
 public class WavefrontHypothesisTesting {
 
   private static Logger log = Logger.getLogger(WavefrontHypothesisTesting.class.getCanonicalName());
+  private static List<String> STOP_COMMANDS = Lists.newArrayList("stop", "s", "quit", "q");
+  private static final AtomicBoolean stopSignal = new AtomicBoolean(false);
 
   @Parameter(names = "--token", description = "Wavefront Token")
   private String token = null;
@@ -45,17 +51,23 @@ public class WavefrontHypothesisTesting {
   @Parameter(names = {"-generationTime"}, description = "Time for each generation (at least one minute)")
   private long generationTime = 60000;
 
+  @Parameter(names = {"-csvOutput"}, description = "File name for CSV output")
+  private String excelOutput = "";
+
+
   public static void main(String[] args) {
     WavefrontHypothesisTesting hypothesisTesting = new WavefrontHypothesisTesting();
     JCommander jCommander = JCommander.newBuilder().addObject(hypothesisTesting).build();
     try {
       jCommander.parse(args);
+      getStartSignal(stopSignal);
       hypothesisTesting.run();
     } catch (ParameterException | InterruptedException pe) {
       System.out.println("ParameterException: " + pe.getMessage());
       System.out.println("Run ./target/wftop with -h or --help to view flag options");
       System.exit(1);
     }
+
   }
 
   public void run() throws InterruptedException {
@@ -81,7 +93,8 @@ public class WavefrontHypothesisTesting {
                                    Multimap<String, String> pointTags, long timestamp, double value) {
         tieredHypothesisManager.consumeReportPoint(accessed, metric, host, pointTags, timestamp, value);
         // always attempt a constant hypothesis (hm will reject if already blacklisted).
-        tieredHypothesisManager.offerHypothesis(new MetricIsConstantHypothesis(metric, 10000));
+        tieredHypothesisManager.offerHypothesis(
+            new MetricIsConstantHypothesis(metric, 10000));
         // attempt a stale metric hypothesis if we see a metric that's old
         if (timestamp < System.currentTimeMillis() - TimeUnit.HOURS.toMillis(1)) {
           tieredHypothesisManager.offerHypothesis(new MetricIsAlwaysOldHypothesis(metric));
@@ -95,14 +108,15 @@ public class WavefrontHypothesisTesting {
             tieredHypothesisManager.offerHypothesis(new OmitMetricAndTagHypothesis(metric, entry.getKey(),
                 entry.getValue()));
           }
-          tieredHypothesisManager.offerHypothesis(new OmitMetricAndTagHypothesis(metric, "source", host));
+          tieredHypothesisManager.offerHypothesis(
+              new OmitMetricAndTagHypothesis(metric, "source", host));
           StringBuilder sourceSB = new StringBuilder();
           for (int i = 0; i < host.length(); i++) {
             char c = host.charAt(i);
             sourceSB.append(c);
             if (separatorsArg.contains(String.valueOf(c))) {
-              tieredHypothesisManager.offerHypothesis(new OmitHostPrefixAndMetricHypothesis(sourceSB.toString(),
-                  metric));
+              tieredHypothesisManager.offerHypothesis(
+                  new OmitHostPrefixAndMetricHypothesis(sourceSB.toString(), metric));
             }
           }
           StringBuilder metricSB = new StringBuilder();
@@ -134,6 +148,24 @@ public class WavefrontHypothesisTesting {
         log.info("Connecting...");
       }
     });
-    tieredHypothesisManager.run(numBackends, minimumPPS, rateArg);
+
+    TieredHMAsset tieredHMAsset =
+        new TieredHMAsset(numBackends, minimumPPS, rateArg, stopSignal, excelOutput);
+    tieredHypothesisManager.run(tieredHMAsset);
+  }
+
+  public static void getStartSignal(AtomicBoolean stopSignal) {
+    new Thread(() -> {
+      Scanner scanner = new Scanner(System.in);
+      while (!stopSignal.get() && scanner.hasNextLine()) {
+        String line = scanner.nextLine();
+        for (String stop : STOP_COMMANDS) {
+          if (stop.equals(line)) {
+            log.info("Running last collection.");
+            stopSignal.set(true);
+          }
+        }
+      }
+    }).start();
   }
 }

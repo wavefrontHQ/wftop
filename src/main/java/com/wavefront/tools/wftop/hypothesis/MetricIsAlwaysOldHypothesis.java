@@ -1,7 +1,9 @@
 package com.wavefront.tools.wftop.hypothesis;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
@@ -21,6 +23,11 @@ public class MetricIsAlwaysOldHypothesis extends AbstractHypothesisImpl {
   @Override
   public String getDescription() {
     return "Eliminate the metric: \"" + metricName + "\" which is always reporting more than an hour ago in the past";
+  }
+
+  @Override
+  public List<String> getDimensions() {
+    return Lists.newArrayList(metricName);
   }
 
   @Override

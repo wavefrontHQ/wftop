@@ -1,7 +1,9 @@
 package com.wavefront.tools.wftop.hypothesis;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
+import java.util.List;
 import java.util.Objects;
 
 public class OmitTagHypothesis extends AbstractUsageDataFPPAdjustingHypothesisImpl {
@@ -22,6 +24,11 @@ public class OmitTagHypothesis extends AbstractUsageDataFPPAdjustingHypothesisIm
   @Override
   public String getDescription() {
     return "Eliminate all unused metrics with the tag: \"" + tagK + "\"=\"" + tagV + "\"";
+  }
+
+  @Override
+  public List<String> getDimensions() {
+    return Lists.newArrayList("", tagK + " = " + tagV);
   }
 
   @Override

@@ -1,7 +1,9 @@
 package com.wavefront.tools.wftop.hypothesis;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
+import java.util.List;
 import java.util.Objects;
 
 public class OmitMetricPrefixHypothesis extends AbstractUsageDataFPPAdjustingHypothesisImpl {
@@ -20,6 +22,11 @@ public class OmitMetricPrefixHypothesis extends AbstractUsageDataFPPAdjustingHyp
   @Override
   public String getDescription() {
     return "Eliminate unused metrics with the prefix \"" + prefix + "\"";
+  }
+
+  @Override
+  public List<String> getDimensions() {
+    return Lists.newArrayList(prefix);
   }
 
   @Override

@@ -1,7 +1,9 @@
 package com.wavefront.tools.wftop.hypothesis;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
+import java.util.List;
 import java.util.Objects;
 
 public class OmitMetricPrefixAndTagHypothesis extends AbstractUsageDataFPPAdjustingHypothesisImpl {
@@ -24,6 +26,11 @@ public class OmitMetricPrefixAndTagHypothesis extends AbstractUsageDataFPPAdjust
   @Override
   public String getDescription() {
     return "Eliminate unused metrics starting with: \"" + prefix + "\" with the tag: \"" + tagK + "\"=\"" + tagV + "\"";
+  }
+
+  @Override
+  public List<String> getDimensions() {
+    return Lists.newArrayList(prefix, tagK + " = " + tagV);
   }
 
   @Override
