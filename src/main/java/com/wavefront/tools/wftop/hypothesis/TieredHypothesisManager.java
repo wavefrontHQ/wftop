@@ -63,6 +63,8 @@ public class TieredHypothesisManager {
   }
 
   public void run(TieredHMAsset asset) throws InterruptedException {
+    long start = System.currentTimeMillis();
+    int fileWrite = 1;
     for (HypothesisManager hypothesisManager : managers) {
       hypothesisManager.evaluateAllHypothesis();
     }
@@ -136,10 +138,12 @@ public class TieredHypothesisManager {
         System.out.println();
       }
       System.out.flush();
-      if (asset.getStopSignal().get()) {
-        spy.stop();
-        writeToExcel(managers, asset);
-        break;
+      long now = System.currentTimeMillis();
+      if (asset.getWriteSignal().get() ||
+          (now - start) >= asset.getOutputGenerationTime()) {
+        start = now;
+        writeToExcel(managers, asset, fileWrite);
+        fileWrite++;
       }
       for (HypothesisManager hypothesisManager : managers) {
         hypothesisManager.incrementAge();
@@ -207,36 +211,34 @@ public class TieredHypothesisManager {
     }
   }
 
-  public void writeToExcel(List<HypothesisManager> managers, TieredHMAsset asset) {
+  public void writeToExcel(List<HypothesisManager> managers, TieredHMAsset asset, int fileWrite) {
     if (StringUtils.isEmpty(asset.getOutputFile())) {
       log.info("No output file provided.");
       return;
     } else {
       log.info("Begin writing to output: " + asset.getOutputFile());
     }
+    asset.getWriteSignal().set(false);
+
     XSSFWorkbook workbook = new XSSFWorkbook();
+    XSSFSheet sheet = workbook.createSheet("Cost Saving Analysis");
     List<String> cellTitles = Lists.newArrayList(
         "Timeseries", "PPS (15m)", "PPS (mean)", "Confidence", "TTL", "Additional Info");
+
+    int rowInd = 0;
+    Row header = sheet.createRow(rowInd++);
+    int cellInd = 0;
+    for (String title : cellTitles) {
+      Cell headerCell = header.createCell(cellInd);
+      headerCell.setCellValue(title);
+      cellInd++;
+    }
 
     for (HypothesisManager hypothesisManager : managers) {
       if (hypothesisManager.getConfidence() >= 1.0) continue; // ignore the catch-all hypothesis.
       log.info("Writing confidence " + hypothesisManager.getConfidence());
       List<Hypothesis> results = hypothesisManager.getAllHypothesis();
       List<Hypothesis> candidates = getRecommendations(asset, results);
-      // total saving of this hypothesis manager
-      double savingsPPS = getSavingsPPS(asset, candidates);
-      XSSFSheet sheet = workbook.createSheet(MessageFormat.format(
-          "Confidence {0}% | Potential Savings: {0,number,#.##}pps",
-          (1.0 - hypothesisManager.getConfidence()) * 100, savingsPPS));
-
-      int rowInd = 0;
-      Row header = sheet.createRow(rowInd++);
-      int cellInd = 0;
-      for (String title : cellTitles) {
-        Cell headerCell = header.createCell(cellInd);
-        headerCell.setCellValue(title);
-        cellInd++;
-      }
 
       Cell cell;
       for (Hypothesis hypothesis : candidates) {
@@ -264,11 +266,12 @@ public class TieredHypothesisManager {
         cell.setCellValue(hypothesis.getDescription());
       }
     }
-
-    try (FileOutputStream out = new FileOutputStream(asset.getOutputFile() + ".xlsx")) {
+    String name = MessageFormat.format(
+        "{0}_{1, number, integer}.xlsx", asset.getOutputFile(), fileWrite);
+    try (FileOutputStream out = new FileOutputStream(name)) {
       workbook.write(out);
     } catch (IOException e) {
-      log.warning("Unable to write to file " + asset.getOutputFile());
+      log.warning("Unable to write to file " + name);
     }
 
     log.info("Done output.");

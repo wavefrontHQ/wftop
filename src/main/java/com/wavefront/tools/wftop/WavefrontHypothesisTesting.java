@@ -8,6 +8,7 @@ import com.google.common.collect.Multimap;
 import com.wavefront.tools.wftop.components.PointsSpy;
 import com.wavefront.tools.wftop.components.Type;
 import com.wavefront.tools.wftop.hypothesis.*;
+import org.apache.commons.lang.StringUtils;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -21,21 +22,27 @@ import java.util.logging.Logger;
 public class WavefrontHypothesisTesting {
 
   private static Logger log = Logger.getLogger(WavefrontHypothesisTesting.class.getCanonicalName());
-  private static List<String> STOP_COMMANDS = Lists.newArrayList("stop", "s", "quit", "q");
-  private static final AtomicBoolean stopSignal = new AtomicBoolean(false);
+  private static List<String> WRITE_COMMAND = Lists.newArrayList("w", "write");
+  private static final AtomicBoolean writeSignal = new AtomicBoolean(false);
 
-  @Parameter(names = "--token", description = "Wavefront Token")
+  @Parameter(names = "-token", description = "Wavefront Token")
   private String token = null;
 
-  @Parameter(names = "--cluster", description = "Wavefront Cluster (metrics.wavefront.com)")
+  @Parameter(names = "-cluster", description = "Wavefront Cluster (metrics.wavefront.com)")
   private String cluster = null;
 
+  /**
+   * highest .05 allowed for sampling.
+   */
   @Parameter(names = {"-r", "-rate"}, description = "Sample rate")
   private double rateArg = 0.01;
 
   @Parameter(names = {"-days"}, description = "Days to look back for access data")
   private int usageDaysLookback = 7;
 
+  /**
+   * Default bloom filter rate.  Don't supply this unless system code is changed.
+   */
   @Parameter(names = {"-usageFPP"}, description = "False positive rate of usage data")
   private double usageFPPRate = 0.01;
 
@@ -51,8 +58,11 @@ public class WavefrontHypothesisTesting {
   @Parameter(names = {"-generationTime"}, description = "Time for each generation (at least one minute)")
   private long generationTime = 60000;
 
-  @Parameter(names = {"-csvOutput"}, description = "File name for CSV output")
+  @Parameter(names = {"-excelOutput"}, description = "File name for excel output")
   private String excelOutput = "";
+
+  @Parameter(names = {"-outputCycleInMillis"}, description = "How often to write output")
+  private long outputGenerationTime = TimeUnit.HOURS.toMillis(12);
 
 
   public static void main(String[] args) {
@@ -60,17 +70,19 @@ public class WavefrontHypothesisTesting {
     JCommander jCommander = JCommander.newBuilder().addObject(hypothesisTesting).build();
     try {
       jCommander.parse(args);
-      getStartSignal(stopSignal);
       hypothesisTesting.run();
     } catch (ParameterException | InterruptedException pe) {
       System.out.println("ParameterException: " + pe.getMessage());
-      System.out.println("Run ./target/wftop with -h or --help to view flag options");
       System.exit(1);
     }
 
   }
 
   public void run() throws InterruptedException {
+    if (!StringUtils.isEmpty(excelOutput)) {
+      setupWriteSignal(writeSignal);
+    }
+
     PointsSpy spy = new PointsSpy();
     spy.setParameters(cluster, token, null, null, rateArg);
     spy.setUsageDaysThreshold(usageDaysLookback);
@@ -150,19 +162,25 @@ public class WavefrontHypothesisTesting {
     });
 
     TieredHMAsset tieredHMAsset =
-        new TieredHMAsset(numBackends, minimumPPS, rateArg, stopSignal, excelOutput);
+        new TieredHMAsset(numBackends, minimumPPS, rateArg, writeSignal, excelOutput, outputGenerationTime);
     tieredHypothesisManager.run(tieredHMAsset);
   }
 
-  public static void getStartSignal(AtomicBoolean stopSignal) {
+  public void setupWriteSignal(AtomicBoolean writeSignal) {
     new Thread(() -> {
+      log.info("Setting up write signal.  Enter: " + WRITE_COMMAND +
+          " to initiate the output.");
       Scanner scanner = new Scanner(System.in);
-      while (!stopSignal.get() && scanner.hasNextLine()) {
+      while (scanner.hasNextLine()) {
         String line = scanner.nextLine();
-        for (String stop : STOP_COMMANDS) {
-          if (stop.equals(line)) {
-            log.info("Running last collection.");
-            stopSignal.set(true);
+        if (writeSignal.get()) {
+          log.info("Write signal already initiated.");
+        } else {
+          for (String s : WRITE_COMMAND) {
+            if (s.equals(line)) {
+              log.info("Initiate write signal.");
+              writeSignal.set(true);
+            }
           }
         }
       }

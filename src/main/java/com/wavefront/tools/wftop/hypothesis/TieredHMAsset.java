@@ -12,7 +12,8 @@ public class TieredHMAsset {
   private final AtomicInteger numBackends;
   private final double minimumPPS;
   private final double rateArg;
-  private final AtomicBoolean stopSignal;
+  private final AtomicBoolean writeSignal;
   private final String outputFile;
+  private final long outputGenerationTime;
 
 }
