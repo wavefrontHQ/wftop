@@ -43,8 +43,8 @@ public class SeriesTrackingHypothesisDelegate implements Hypothesis {
   }
 
   @Override
-  public double getViolationPercentage(long usageLookupDays, double usageFPPRate) {
-    return delegate.getViolationPercentage(usageLookupDays, usageFPPRate);
+  public double getViolationPercentage() {
+    return delegate.getViolationPercentage();
   }
 
   @Override

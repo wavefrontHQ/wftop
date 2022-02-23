@@ -1,6 +1,7 @@
 package com.wavefront.tools.wftop.hypothesis;
 
 import com.google.common.collect.Multimap;
+import com.wavefront.tools.wftop.hypothesis.pojo.HypothesisEvalResult;
 
 import java.util.HashSet;
 import java.util.List;
@@ -12,7 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * This class manage a list of hypothesis within {@link #maxHypothesisCount}
  * Sort base on {@link Hypothesis#getInstaneousRate()}
- * Drop base on {@link Hypothesis#getViolationPercentage(long, double)} ()}
+ * Drop base on {@link Hypothesis#getViolationPercentage()} ()}
  */
 public class HypothesisManager {
 
@@ -83,11 +84,11 @@ public class HypothesisManager {
     synchronized (this) {
       HypothesisEvalResult res = HypothesisEvalResult.newHypothesisEvalResult();
       for (Hypothesis h : hypothesisList) {
-        if (h.getViolationPercentage(usageLookbackDays, usageFPPRate) <= upperBound) {
+        if (h.getViolationPercentage() <= upperBound) {
           res.getWithinBounds().add(h);
         }
 
-        if (h.getViolationPercentage(usageLookbackDays, usageFPPRate) > confidence) {
+        if (h.getViolationPercentage() > confidence) {
           res.getRejected().add(h);
           blacklistedHypothesis.add(h);
         }

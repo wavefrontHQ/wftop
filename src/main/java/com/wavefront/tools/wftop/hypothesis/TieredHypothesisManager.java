@@ -5,6 +5,8 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.wavefront.tools.wftop.components.PointsSpy;
+import com.wavefront.tools.wftop.hypothesis.pojo.HypothesisEvalResult;
+import com.wavefront.tools.wftop.hypothesis.pojo.TieredHMAsset;
 import org.apache.commons.lang.StringUtils;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
@@ -122,7 +124,7 @@ public class TieredHypothesisManager {
         System.out.println(MessageFormat.format("Potential Savings: {0,number,#.##}pps", savingsPPS));
         int index = 1;
         for (Hypothesis hypothesis : candidates) {
-          double hConfidence = 100.0 - 100 * hypothesis.getViolationPercentage(usageLookbackDays, usageFPPRate);
+          double hConfidence = 100.0 - 100 * hypothesis.getViolationPercentage();
           double fifteenMinuteSavings = hypothesis.getPPSSavings(
               false, asset.getNumBackends().get(), asset.getRateArg());
           double lifetimeSavings = hypothesis.getPPSSavings(
@@ -223,7 +225,8 @@ public class TieredHypothesisManager {
     XSSFWorkbook workbook = new XSSFWorkbook();
     XSSFSheet sheet = workbook.createSheet("Cost Saving Analysis");
     List<String> cellTitles = Lists.newArrayList(
-        "Timeseries", "PPS (15m)", "PPS (mean)", "Confidence", "TTL", "Additional Info");
+        "Timeseries", "PPS (15m)", "PPS (mean)", "Confidence", "Adjusted Confidence",
+        "TTL", "Additional Info");
 
     int rowInd = 0;
     Row header = sheet.createRow(rowInd++);
@@ -242,7 +245,12 @@ public class TieredHypothesisManager {
 
       Cell cell;
       for (Hypothesis hypothesis : candidates) {
-        double hConfidence = 100.0 - 100 * hypothesis.getViolationPercentage(usageLookbackDays, usageFPPRate);
+        double hConfidence = 100.0 - 100 * hypothesis.getViolationPercentage();
+        double adjustedConfidence = -1;
+        if (hypothesis instanceof AbstractUsageDataFPPAdjustingHypothesisImpl) {
+          adjustedConfidence = 100.0 - 100 * hypothesis.getAdjustedViolationPercentage(usageLookbackDays, usageFPPRate);
+        }
+
         double fifteenMinuteSavings = hypothesis.getPPSSavings(
             false, asset.getNumBackends().get(), asset.getRateArg());
         double lifetimeSavings = hypothesis.getPPSSavings(
@@ -261,8 +269,10 @@ public class TieredHypothesisManager {
         cell = row.createCell(3);
         cell.setCellValue(hConfidence);
         cell = row.createCell(4);
-        cell.setCellValue(Duration.ofMillis(hypothesis.getAge() * 2 * generationTime).toString());
+        cell.setCellValue(adjustedConfidence);
         cell = row.createCell(5);
+        cell.setCellValue(Duration.ofMillis(hypothesis.getAge() * 2 * generationTime).toString());
+        cell = row.createCell(6);
         cell.setCellValue(hypothesis.getDescription());
       }
     }

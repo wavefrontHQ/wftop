@@ -1,6 +1,7 @@
 package com.wavefront.tools.wftop.hypothesis;
 
 import com.codahale.metrics.Meter;
+import com.wavefront.tools.wftop.hypothesis.pojo.ViolationResult;
 
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -40,7 +41,7 @@ public abstract class AbstractHypothesisImpl implements Hypothesis {
   }
 
   @Override
-  public double getViolationPercentage(long usageLookupDays, double usageFPPRate) {
+  public double getViolationPercentage() {
     return (double) violations.get() / hits.get();
   }
 

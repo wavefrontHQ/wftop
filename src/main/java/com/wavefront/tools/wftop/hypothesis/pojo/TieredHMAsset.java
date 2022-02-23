@@ -1,4 +1,4 @@
-package com.wavefront.tools.wftop.hypothesis;
+package com.wavefront.tools.wftop.hypothesis.pojo;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

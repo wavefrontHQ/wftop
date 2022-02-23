@@ -1,6 +1,7 @@
-package com.wavefront.tools.wftop.hypothesis;
+package com.wavefront.tools.wftop.hypothesis.pojo;
 
 import com.google.common.collect.Lists;
+import com.wavefront.tools.wftop.hypothesis.Hypothesis;
 
 import java.util.List;
 

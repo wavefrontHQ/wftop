@@ -8,6 +8,7 @@ import com.google.common.collect.Multimap;
 import com.wavefront.tools.wftop.components.PointsSpy;
 import com.wavefront.tools.wftop.components.Type;
 import com.wavefront.tools.wftop.hypothesis.*;
+import com.wavefront.tools.wftop.hypothesis.pojo.TieredHMAsset;
 import org.apache.commons.lang.StringUtils;
 
 import javax.annotation.Nullable;

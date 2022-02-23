@@ -1,5 +1,7 @@
 package com.wavefront.tools.wftop.hypothesis;
 
+import com.wavefront.tools.wftop.hypothesis.pojo.ViolationResult;
+
 /**
  * For all {@link Hypothesis} that needs adjustment from usage data FPP rate.
  *
@@ -8,10 +10,11 @@ package com.wavefront.tools.wftop.hypothesis;
 public abstract class AbstractUsageDataFPPAdjustingHypothesisImpl extends AbstractHypothesisImpl {
 
   @Override
-  public double getViolationPercentage(long usageLookupDays, double usageFPPRate) {
+  public double getAdjustedViolationPercentage(long usageLookupDays, double usageFPPRate) {
     double expectedAccuracy = Math.pow(1 - usageFPPRate, usageLookupDays);
-    double originalViolationPercentage = super.getViolationPercentage(usageLookupDays, usageFPPRate);
+    double originalViolationPercentage = getViolationPercentage();
     double confidence = 1.0 - originalViolationPercentage;
+
     if (confidence >= expectedAccuracy) {
       return 0;
     } else {

@@ -32,11 +32,13 @@ public interface Hypothesis {
   double getInstaneousRate();
 
   /**
-   * @param usageLookupDays The number of days we are looking back usage data.
-   * @param usageFPPRate    The false positive rate of lookback data.
    * @return How often is this hypothesis violated (between 0 and 1).
    */
-  double getViolationPercentage(long usageLookupDays, double usageFPPRate);
+  double getViolationPercentage();
+
+  default double getAdjustedViolationPercentage(long usageLookupDays, double usageFPPRate) {
+    return getViolationPercentage();
+  }
 
   /**
    * Process a {@link ReportPoint} and update stats.

@@ -28,8 +28,8 @@ public class MetricIsConstantHypothesis extends AbstractHypothesisImpl {
   }
 
   @Override
-  public double getViolationPercentage(long usageLookupDays, double usageFPPRate) {
-    double confidence = 1.0 - super.getViolationPercentage(usageLookupDays, usageFPPRate);
+  public double getViolationPercentage() {
+    double confidence = 1.0 - super.getViolationPercentage();
     // multiply by ratio of what we are tracking vs seen
     // 1 if < maxTrackedSeries, else < 1.
     confidence *= (double) values.size() / getEstimatedTotalSeriesCount();
