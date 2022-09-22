@@ -6,9 +6,11 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.wavefront.ingester.AbstractIngesterFormatter;
 import com.wavefront.ingester.ReportPointIngesterFormatter;
+import com.wavefront.ingester.WFTopDecoder;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.config.RequestConfig;
@@ -25,6 +27,7 @@ import org.apache.http.protocol.HttpContext;
 import wavefront.report.ReportPoint;
 
 import javax.annotation.Nullable;
+import java.awt.event.WindowFocusListener;
 import java.io.IOException;
 import java.nio.CharBuffer;
 import java.util.*;
@@ -47,14 +50,7 @@ public class PointsSpy {
   /**
    * Ingestion has a weird format that's not like our ingestion unfortunately.
    */
-  private static final AbstractIngesterFormatter<ReportPoint> FORMAT =
-      ReportPointIngesterFormatter.newBuilder().
-          whiteSpace().appendMetricName().
-          whiteSpace().appendBoundedAnnotationsConsumer().
-          whiteSpace().appendTimestamp(TimeUnit.MILLISECONDS).
-          whiteSpace().appendValue().
-          whiteSpace().appendAnnotationsConsumer().
-          whiteSpace().build();
+  private static final WFTopDecoder decoder = new WFTopDecoder();
 
   private final AtomicBoolean connected = new AtomicBoolean(false);
 
@@ -422,7 +418,9 @@ public class PointsSpy {
    * @param line     Each point is listed on a separate line.
    */
   private void parseMetric(boolean accessed, String line) {
-    ReportPoint drive = FORMAT.drive(line, null, null);
+    List<ReportPoint> out = Lists.newArrayList();
+    decoder.decodeReportPoints(line, out, null);
+    ReportPoint drive = out.get(0);
     if (listener != null) {
       Multimap<String, String> annotations;
       if (drive.getAnnotations() != null) {

@@ -1,9 +1,9 @@
 package com.wavefront.tools.wftop.components;
 
-import com.codahale.metrics.Histogram;
-import com.codahale.metrics.Meter;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.AtomicDouble;
+import io.dropwizard.metrics5.Histogram;
+import io.dropwizard.metrics5.Meter;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

@@ -1,7 +1,5 @@
 package com.wavefront.tools.wftop.panels;
 
-import com.codahale.metrics.Meter;
-import com.codahale.metrics.Snapshot;
 import com.google.common.annotations.VisibleForTesting;
 import com.googlecode.lanterna.TextColor;
 import com.googlecode.lanterna.gui2.*;
@@ -10,6 +8,8 @@ import com.googlecode.lanterna.input.KeyStroke;
 import com.googlecode.lanterna.input.KeyType;
 import com.wavefront.tools.wftop.components.Node;
 
+import io.dropwizard.metrics5.Meter;
+import io.dropwizard.metrics5.Snapshot;
 import org.apache.commons.csv.CSVPrinter;
 
 import javax.annotation.Nullable;
