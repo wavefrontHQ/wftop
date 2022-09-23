@@ -8,9 +8,7 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
-import com.wavefront.ingester.AbstractIngesterFormatter;
-import com.wavefront.ingester.ReportPointIngesterFormatter;
-import com.wavefront.ingester.WFTopDecoder;
+import com.wavefront.ingester.SpyApiMetricDecoder;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.config.RequestConfig;
@@ -24,15 +22,17 @@ import org.apache.http.nio.IOControl;
 import org.apache.http.nio.client.methods.AsyncCharConsumer;
 import org.apache.http.nio.client.methods.HttpAsyncMethods;
 import org.apache.http.protocol.HttpContext;
-import wavefront.report.ReportPoint;
+import wavefront.report.Annotation;
+import wavefront.report.ReportMetric;
 
 import javax.annotation.Nullable;
-import java.awt.event.WindowFocusListener;
 import java.io.IOException;
 import java.nio.CharBuffer;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -50,7 +50,7 @@ public class PointsSpy {
   /**
    * Ingestion has a weird format that's not like our ingestion unfortunately.
    */
-  private static final WFTopDecoder decoder = new WFTopDecoder();
+  private static final SpyApiMetricDecoder decoder = new SpyApiMetricDecoder();
 
   private final AtomicBoolean connected = new AtomicBoolean(false);
 
@@ -418,14 +418,14 @@ public class PointsSpy {
    * @param line     Each point is listed on a separate line.
    */
   private void parseMetric(boolean accessed, String line) {
-    List<ReportPoint> out = Lists.newArrayList();
-    decoder.decodeReportPoints(line, out, null);
-    ReportPoint drive = out.get(0);
+    List<ReportMetric> out = Lists.newArrayList();
+    decoder.decode(line, out, null, null);
+    ReportMetric drive = out.get(0);
     if (listener != null) {
       Multimap<String, String> annotations;
       if (drive.getAnnotations() != null) {
         annotations = ArrayListMultimap.create(drive.getAnnotations().size(), 1);
-        for (Map.Entry<String, String> annotation : drive.getAnnotations().entrySet()) {
+        for (Annotation annotation : drive.getAnnotations()) {
           annotations.put(annotation.getKey(), annotation.getValue());
         }
       } else {
