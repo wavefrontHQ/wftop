@@ -1,10 +1,10 @@
 package com.wavefront.tools.wftop.panels;
 
-import com.codahale.metrics.Meter;
-import com.codahale.metrics.Snapshot;
 import com.google.common.collect.Ordering;
 import com.googlecode.lanterna.gui2.*;
 import com.wavefront.tools.wftop.components.Node;
+import io.dropwizard.metrics5.Meter;
+import io.dropwizard.metrics5.Snapshot;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.lang.StringUtils;

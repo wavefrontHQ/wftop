@@ -1,10 +1,8 @@
 package com.wavefront.tools.wftop.components;
 
-import com.codahale.metrics.Histogram;
-import com.codahale.metrics.Meter;
-import com.codahale.metrics.UniformReservoir;
 import com.google.common.util.concurrent.AtomicDouble;
-import net.agkn.hll.HLL;
+import io.dropwizard.metrics5.Histogram;
+import io.dropwizard.metrics5.Meter;
 
 import java.util.Map;
 
