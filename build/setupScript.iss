@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Wftop"
-#define MyAppVersion "1.0"
+#define MyAppVersion "1.2"
 #define MyAppPublisher "Wavefront, Inc."
 #define MyAppURL "https://github.com/wavefrontHQ/wftop"
 #define MyAppExeName "startWftop.cmd"
