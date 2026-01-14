@@ -53,7 +53,7 @@ Configuration screen when spying on ID creations can configure the type of id cr
 ![Setup Screen](https://raw.githubusercontent.com/wavefronthq/wftop/master/screenshots/IdConfigurationScreen.png)
 
 ## Build
-Download latest version of [wftop.exe](https://storage.googleapis.com/wavefront-static-assets-prod/wf-top-assets/wftop.exe) for Windows.
+Download latest version of [wftop.exe](https://51811f5f5eecd3a2.tobs.sptobsg1.vmw.saas.broadcom.com/wf-top-assets/wftop.exe) for Windows.
 
 ## Requirements
   * Java >= 1.8
